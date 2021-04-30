@@ -842,7 +842,7 @@ element_length_boxplot<-ggplot(data=element_width_table,aes(x=category,y=width,f
   theme(legend.title = element_text(size=9,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
-  ylab("Length (log10 scaled)") 
+  ylab("Length / bp (log10 scaled)") 
 
 element_length_boxplot
 ggsave(element_length_boxplot,file="element_length_boxplot.jpg",width=6,height = 4)
@@ -986,7 +986,7 @@ intergenic_lncrna<-unique(filtered_together_paf_union[query_name %in% lncrna_pro
 
 
 
-
+ 
 #intron exon overlap
 
 int_ex_overlap_candidates_intronic<-GenomicRanges::setdiff(filtered_together_paf_union_granges$query_name,intronic_lncrna)
@@ -999,16 +999,14 @@ overlaps_candidates_exons_prot_introns<-findOverlaps(int_ex_overlap_candidates_e
 overlaps_candidates_exons_prot_introns_table<-cbind(as.data.table(int_ex_overlap_candidates_exons[queryHits(overlaps_candidates_exons_prot_introns)]),as.data.table(protein_introns[subjectHits(overlaps_candidates_exons_prot_introns)]))
 setnames(overlaps_candidates_exons_prot_introns_table,c("seqnames1","start1","end1","width1","strand1","transcript","seqnames2","start2","end2","width2","strand2","transcript_int"))
 overlapping_lncrna<-c(overlapping_lncrna,overlaps_candidates_exons_prot_introns_table$transcript)
-intergenic_lncrna<-c(intergenic_lncrna,GenomicRanges::setdiff(int_ex_overlap_candidates_intronic_overlapping_intergenic,unique(overlaps_candidates_exons_prot_introns_table$transcript)))
+
 
 
 #transcript number per class
 
 lncRNA_classification_table<-unique(data.table(transcript=c(intronic_lncrna,overlapping_lncrna,intergenic_lncrna),class=c(rep("intronic_lncRNA",length(intronic_lncrna)),rep("overlapping_lncRNA",length(overlapping_lncrna)),rep("intergenic_lncRNA",length(intergenic_lncrna)))))
 number_of_lncrna_classes<-lncRNA_classification_table[,.(number_of_lncRNA=.N),by=class]
-number_of_lncrna_classes_prikaz<-copy(number_of_lncrna_classes)
-setnames(number_of_lncrna_classes_prikaz,c("Klasa","Broj"))
-number_of_lncrna_classes_prikaz
+
 
 
    
@@ -1031,8 +1029,10 @@ lncrna_paf_with_classification<-merge(filtered_together_paf_union,lncRNA_classif
 
 class_transcripts_table<-data.table(element_length=c(lncrna_paf_with_classification[class=="intergenic_lncRNA"]$query_length,lncrna_paf_with_classification[class=="intronic_lncRNA"]$query_length,lncrna_paf_with_classification[class=="overlapping_lncRNA"]$query_length),class=c(rep("intergenic_lncRNA",length(lncrna_paf_with_classification[class=="intergenic_lncRNA"]$query_length)),rep("intronic_lncRNA",length(lncrna_paf_with_classification[class=="intronic_lncRNA"]$query_length)),rep("overlapping_lncRNA",length(lncrna_paf_with_classification[class=="overlapping_lncRNA"]$query_length))))
 
+
+
 class_transcripts_table[,class:=factor(class,levels=c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA"))]
-class_transcripts_table[,feature:="transkripti"]
+class_transcripts_table[,feature:="Transcripts"]
 
 
 #class exons
@@ -1040,7 +1040,7 @@ class_transcripts_table[,feature:="transkripti"]
 filtered_together_paf_union_exons_class<-merge(filtered_together_paf_union_exons,lncRNA_classification_table,by="transcript")
 
 class_exons_table<-filtered_together_paf_union_exons_class[,.SD,.SDcols=c("width","class")]
-class_exons_table[,feature:="egzoni"]
+class_exons_table[,feature:="Exons"]
 setnames(class_exons_table,c("element_length","class","feature"))
 
 #class introns
@@ -1048,7 +1048,7 @@ setnames(class_exons_table,c("element_length","class","feature"))
 
 filtered_together_paf_union_introns_class<-merge(introns_table,lncRNA_classification_table,by="transcript")
 class_introns_table<-filtered_together_paf_union_introns_class[,.SD,.SDcols=c("width","class")]
-class_introns_table[,feature:="introni"]
+class_introns_table[,feature:="Introns"]
 setnames(class_introns_table,c("element_length","class","feature"))
 #class genes
 
@@ -1062,10 +1062,10 @@ class_genes_trinity<-unique(overlaps_table_trinity_with_class[,.SD,.SDcols=c("se
 class_genes_table<-rbind(class_genes_rnaspades,class_genes_trinity)
 class_genes_table<-class_genes_table[,.SD,.SDcols=c("width1","class")]
 setnames(class_genes_table,c("element_length","class"))
-class_genes_table[,feature:="geni"]
+class_genes_table[,feature:="Genes"]
 
 class_together_table<-rbind(class_transcripts_table,class_exons_table,class_introns_table,class_genes_table)
-class_together_table<-class_together_table[,feature:=factor(feature,c("egzoni","introni","transkripti","geni"))]
+class_together_table<-class_together_table[,feature:=factor(feature,c("Exons","Introns","Transcripts","Genes"))]
 class_together_table[,class:=factor(class,levels = c("intronic_lncRNA","intergenic_lncRNA","overlapping_lncRNA"))]
 class_lengths_plot<-ggplot(data=class_together_table,aes(x=class,y=element_length,fill=class)) +
   geom_boxplot(alpha=0.8) +
@@ -1077,8 +1077,8 @@ class_lengths_plot<-ggplot(data=class_together_table,aes(x=class,y=element_lengt
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
   theme(axis.title.y   = element_text(size=9)) +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Klasa",labels=c("Intronske lncRNA","Intergenske lncRNA","Preklapajuće lncRNA")) +
-  ylab("Duljina / pb (log10 skalirano)") 
+  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Class",labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA")) +
+  ylab("Length / bp (log10 scaled)") 
 
 
 class_lengths_plot
@@ -1122,13 +1122,13 @@ setnames(lncrnas_final_reduced_together_dt,c("seqnames1","start1","end1","width1
 lncrnas_final_reduced_together_dt_merged<-merge(lncrnas_final_reduced_together_dt,class_gene_together,by=c("seqnames1","start1","end1","width1"),all.x=T)
 intergenic_lncrna_dt<-lncrnas_final_reduced_together_dt_merged[class=="intergenic_lncRNA"]
 intergenic_lncrna_granges<-makeGRangesFromDataFrame(intergenic_lncrna_dt,seqnames.field = "seqnames1",start.field = "start1",end.field = "end1",keep.extra.columns = T)
-intergenic_nearest_gene_nearest<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
-prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene_nearest]
+intergenic_nearest_gene<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
+prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene]
 
 
 intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$query_name,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
 
-inter_on_contigs_without_genes<-which(is.na(intergenic_prot_nearest_table$seqname2))
+inter_on_contigs_without_genes<-which(is.na(intergenic_prot_nearest_table$seqnames2))
 length(inter_on_contigs_without_genes)
 
 intergenic_prot_nearest_table<-intergenic_prot_nearest_table[is.na(seqnames2)==F]
@@ -1137,11 +1137,11 @@ intergenic_prot_nearest_table[,distance:=ifelse(start1>start2,start1-end2-1,end1
 inter_prot_cod_distance_plot<-ggplot(data=intergenic_prot_nearest_table,aes(x=distance)) +
   geom_histogram(color="black",fill="skyblue",binwidth = 250) +
   theme_bw()  +
-  xlab("Udaljenost lncRNA-kodirajućeg gena od najbližeg protein-kodirajućeg gena / pb") +
-  ylab("Broj lncRNA-kodirajućih gena") +
+  xlab("Distance to nearest protein-coding gene / bp") +
+  ylab("Number of lncRNA-coding genes") +
   coord_cartesian(xlim=c(-10000,10000)) +
-  theme(axis.title.x   = element_text(size=8.5)) +
-  theme(axis.title.y   = element_text(size=8.5)) 
+  theme(axis.title.x   = element_text(size=9)) +
+  theme(axis.title.y   = element_text(size=9)) 
 
 inter_prot_cod_distance_plot
   
@@ -2150,8 +2150,8 @@ setnames(lncrnas_final_reduced_together_dt,c("seqnames1","start1","end1","width1
 lncrnas_final_reduced_together_dt_merged<-merge(lncrnas_final_reduced_together_dt,class_gene_together,by=c("seqnames1","start1","end1","width1"),all.x=T)
 intergenic_lncrna_dt<-lncrnas_final_reduced_together_dt_merged[class=="intergenic_lncRNA"]
 intergenic_lncrna_granges<-makeGRangesFromDataFrame(intergenic_lncrna_dt,seqnames.field = "seqnames1",start.field = "start1",end.field = "end1",keep.extra.columns = T)
-intergenic_nearest_gene_nearest<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
-prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene_nearest]
+intergenic_nearest_gene<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
+prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene]
 
 
 intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$gene_id,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
