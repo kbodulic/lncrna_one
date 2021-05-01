@@ -793,6 +793,11 @@ esu_genome<-readDNAStringSet("ESU_pilon_pathPol.fasta")
 #only metazoan scaffolds
 esu_genome<-esu_genome[names(esu_genome)%in%taxonomy_table_nonbact]
 lncrna_intron_sequences<-getSeq(esu_genome,lncrna_filtered_introns)
+lncrna_exons_together_gr<-makeGRangesFromDataFrame(df = lncrna_exons_together,seqnames.field = "chromosome")
+
+
+lncrna_exon_sequences<-getSeq(esu_genome,lncrna_exons_together_gr)
+
 
 protein_exons_sequences<-getSeq(esu_genome,protein_exons)
 names(protein_exons_sequences)<-protein_exons$attribute
@@ -1154,7 +1159,7 @@ ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.jpg",widt
 #intronic
 
 
-intronic_prots<-unique(overlaps_lncRNA_prot_within_table[query_name%in%intersect(overlapping_lncrna,intronic_lncrna)==F])$attribute
+intronic_prots<-unique(overlaps_lncRNA_prot_within_table$attribute)
 
 #overlapping
 
@@ -1166,7 +1171,7 @@ overlapping_prots<-unique(overlaps_prot_lncrna_within_table$attribute)
 intergenic_prots<-unique(intergenic_prot_nearest_table[distance<=1000 & distance >= -1000]$prot_cod_gene)
 
 category_prots<-c(intronic_prots,overlapping_prots,intergenic_prots)
-no_category_prots<-GenomicRanges::setdiff(protein_coding_genes$attribute,category_prots)
+no_category_prots<-setdiff(protein_coding_genes$attribute,category_prots)
 
 prot_classification_table<-data.table(gene=c(category_prots,no_category_prots),lncrna_class=c(rep("intronic",length(intronic_prots)),rep("overlapping",length(overlapping_prots)),rep("intergenic_1kb",length(intergenic_prots)),rep("no_lncRNA",length(no_category_prots))))
 
@@ -1186,13 +1191,11 @@ write.table(prot_lncrna_intergenic_1kb_overlaps_genes,file="prot_lncrna_intergen
 lncRNA_classification_table_with_gene_id<-merge(lncRNA_classification_table,isoform_map_table_together)
 #GC content
 
-genome_gc<-alphabetFrequency(unlist(esu_genome),as.prob = T)["C"]+alphabetFrequency(unlist(esu_genome),as.prob = T)["G"]
-prot_gc<-alphabetFrequency(protein_transcript_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_transcript_sequences,as.prob = T)[,"G"]
-lncrna_gc<-alphabetFrequency(lncrna_together_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_together_sequences,as.prob = T)[,"G"]
+genome_gc<-100*(alphabetFrequency(unlist(esu_genome),as.prob = T)["C"]+alphabetFrequency(unlist(esu_genome),as.prob = T)["G"])
+prot_gc<-100*(alphabetFrequency(protein_transcript_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_transcript_sequences,as.prob = T)[,"G"])
+lncrna_gc<-100*(alphabetFrequency(lncrna_together_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_together_sequences,as.prob = T)[,"G"])
 
 gc_table<-data.table(transcript_gc=c(lncrna_gc,prot_gc),category=c(rep("lncRNA",length(lncrna_gc)),rep("protein_coding_transcripts",length(prot_gc))))
-
-
 
 
 gc_density_plot<-ggplot(data=gc_table,aes(x=transcript_gc,y=..scaled..,fill=category)) +
@@ -1200,9 +1203,9 @@ gc_density_plot<-ggplot(data=gc_table,aes(x=transcript_gc,y=..scaled..,fill=cate
   theme_bw() +
   theme(legend.position = "top") +
   geom_vline(xintercept = genome_gc,linetype="dotted",size=1) +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Kategorija", labels=c("lncRNA","mRNA")) +
-  xlab("udio GC tranksripata") +
-  ylab("Udio transkripta") +
+  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA","mRNA")) +
+  xlab("GC content") +
+  ylab("Percentage of transcripts") +
   theme(legend.title = element_text(size=9,face="bold"))
 
 
@@ -1211,6 +1214,31 @@ gc_density_plot
 ggsave(gc_density_plot,file="gc_density_plot.jpg",width = 6,height = 4.6)
 
 t.test(lncrna_gc,prot_gc)  
+
+gc_exons_lncrna<-100*(alphabetFrequency(lncrna_exon_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_exon_sequences,as.prob = T)[,"G"])
+gc_introns_lncrna<-100*(alphabetFrequency(lncrna_intron_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_intron_sequences,as.prob = T)[,"G"])
+gc_exons_prot<-100*(alphabetFrequency(protein_exons_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_exons_sequences,as.prob = T)[,"G"])
+gc_introns_prot<-100*(alphabetFrequency(protein_intron_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_intron_sequences,as.prob = T)[,"G"])
+
+gc_table_box<-data.table(transcript_gc=c(gc_exons_lncrna,gc_introns_lncrna,gc_exons_prot,gc_introns_prot),category=c(rep("lncRNA_exons",length(gc_exons_lncrna)),rep("lncRNA_introns",length(gc_introns_lncrna)),rep("protein_exons",length(prot_gc)),rep("protein_introns")))
+
+gc_table_box[,cate:=ifelse(grepl("lncRNA",category),"lncRNA","protein")]
+gc_table_box[,element:=ifelse(grepl("exons",category),"Exons","Introns")]
+
+
+gc_box<-ggplot(gc_table_box,aes(x=cate,y=transcript_gc,fill=cate)) +
+  geom_boxplot(width=0.75,alpha=0.8) +
+  theme_bw() +
+  facet_wrap(.~element) +
+  scale_fill_manual(values=c("indianred2","steelblue")) +
+  theme(axis.title.x=element_blank()) +
+  theme(legend.position = "none") +
+  ylab("GC content") +
+  geom_hline(yintercept = genome_gc,linetype="dotted",size=1)
+
+gc_box
+
+ggsave(gc_box,filename = "gc_box.png",height = 4,width = 6)
 
 exons_clean_lncrna_rnaspades<-rnaspades_filtered_exons[transcript%in%rnaspades_filtered_list]
 exons_clean_lncrna_rnaspades[,gene:=str_extract(transcript,"NODE_\\d*")]
