@@ -282,7 +282,7 @@ lengths_plot
 
 
 
-ggsave(lengths_plot,filename = "lengths_plot.jpg",width = 7,height = 5)
+ggsave(lengths_plot,filename = "lengths_plot.png",width = 7,height = 5)
 
 
 
@@ -380,7 +380,7 @@ perc_plot<-ggplot(data=overlap_table,aes(x=length_frac))+
 
 perc_plot
 
-ggsave(perc_plot,file="perc_plot.jpg",width = 5,height = 4)
+ggsave(perc_plot,file="perc_plot.png",width = 5,height = 4)
 
 overlap_table_filtered_more_than_20_length_frac<-overlap_table[length_frac>=20]
 overlap_table_filtered_less_than_20_length_frac<-overlap_table[length_frac<20]
@@ -530,8 +530,8 @@ rnaspades_paf_filtered_union<-rnaspades_paf_filtered[query_name%in%final_lncrna_
 trinity_paf_filtered_union<-trinity_paf_filtered[query_name%in%final_lncrna_list_trinity]
 
 
-rnaspades_paf_filtered_more_iso<-rnaspades_paf_filtered[query_name%in%final_lncrna_list_rnaspades]
-trinity_paf_filtered_more_iso<-trinity_paf_filtered[query_name%in%final_lncrna_list_trinity]
+rnaspades_paf_filtered_iso<-rnaspades_paf_filtered[query_name%in%final_lncrna_list_rnaspades]
+trinity_paf_filtered_iso<-trinity_paf_filtered[query_name%in%final_lncrna_list_trinity]
 
 #isoforms
 
@@ -580,13 +580,13 @@ isoforms_plot_proportions<-ggplot(data=isoforms_table_together_num,aes(x=number_
   ylab("Percentage of genes") +
   scale_x_discrete(limits=c(1:9,">9")) +
   theme(legend.position = "top") +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("LncRNA-coding genes","Protein-coding genes")) +
+  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
   theme(legend.title = element_text(size=9,face="bold")) 
 
 
 isoforms_plot_proportions
 
-ggsave(isoforms_plot_proportions,file="isoforms_plot_proportions.jpg",width = 6,height = 4.2)
+ggsave(isoforms_plot_proportions,file="isoforms_plot_proportions.png",width = 6,height = 4.2)
 
 
 #exons and introns
@@ -726,7 +726,7 @@ exons_plot_proportion<-ggplot(data=exon_number_table_together_num,aes(x=number_o
   ylab("Percentage of genes") +
   theme(legend.position = "top") +
   scale_x_discrete(limits=c(2:9,">9"),drop=F) +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("LncRNA-coding genes","Protein-coding genes")) +
+  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
   theme(legend.title = element_text(size=9,face="bold")) 
 
 
@@ -734,7 +734,7 @@ exons_plot_proportion<-ggplot(data=exon_number_table_together_num,aes(x=number_o
 
 exons_plot_proportion
 
-ggsave(exons_plot_proportion,file="exons_plot_proportion.jpg",width=6, height = 4.2)
+ggsave(exons_plot_proportion,file="exons_plot_proportion.png",width=6, height = 4.2)
 
 
 
@@ -850,7 +850,7 @@ element_length_boxplot<-ggplot(data=element_width_table,aes(x=category,y=width,f
   ylab("Length / bp (log10 scaled)") 
 
 element_length_boxplot
-ggsave(element_length_boxplot,file="element_length_boxplot.jpg",width=6,height = 4)
+ggsave(element_length_boxplot,file="element_length_boxplot.png",width=6,height = 4)
 
 
 
@@ -918,7 +918,7 @@ heatmap_splice_sites<-ggplot(data=splice_sites_table_total_together,aes(x=first_
 
 
 heatmap_splice_sites
-ggsave(heatmap_splice_sites,file="heatmap_splice_sites.jpg")
+ggsave(heatmap_splice_sites,file="heatmap_splice_sites.png")
 
 
 
@@ -1088,7 +1088,7 @@ class_lengths_plot<-ggplot(data=class_together_table,aes(x=class,y=element_lengt
 
 class_lengths_plot
 
-ggsave(class_lengths_plot,file="class_lengths_plot.jpg",width=6,height = 4)
+ggsave(class_lengths_plot,file="class_lengths_plot.png",width=6,height = 4)
 
 #genesum of bases by class
 class_genes_table
@@ -1150,7 +1150,7 @@ inter_prot_cod_distance_plot<-ggplot(data=intergenic_prot_nearest_table,aes(x=di
 
 inter_prot_cod_distance_plot
   
-ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.jpg",width = 5,height = 3.8)
+ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.png",width = 5,height = 3.8)
 
 
 
@@ -1198,73 +1198,46 @@ lncrna_gc<-100*(alphabetFrequency(lncrna_together_sequences,as.prob = T)[,"C"]+a
 gc_table<-data.table(transcript_gc=c(lncrna_gc,prot_gc),category=c(rep("lncRNA",length(lncrna_gc)),rep("protein_coding_transcripts",length(prot_gc))))
 
 
-gc_density_plot<-ggplot(data=gc_table,aes(x=transcript_gc,y=..scaled..,fill=category)) +
-  geom_density(alpha=0.5) +
+gc_boxplot<-ggplot(data=gc_table,aes(x=category,y=transcript_gc,fill=category)) +
+  geom_boxplot(width=0.5,alpha=0.8) +
   theme_bw() +
-  theme(legend.position = "top") +
-  geom_vline(xintercept = genome_gc,linetype="dotted",size=1) +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA","mRNA")) +
-  xlab("GC content") +
-  ylab("Percentage of transcripts") +
-  theme(legend.title = element_text(size=9,face="bold"))
+  theme(legend.position = "none") +
+    scale_fill_manual(values=c("indianred2","steelblue")) +
+  theme(axis.title.x = element_blank()) +
+  ylab("GC content") +
+    scale_x_discrete(labels=c("lncRNA","mRNA"))
 
 
-gc_density_plot 
+gc_boxplot
 
-ggsave(gc_density_plot,file="gc_density_plot.jpg",width = 6,height = 4.6)
+ggsave(gc_boxplot,file="gc_boxplot.png",width = 6,height = 4.6)
 
 t.test(lncrna_gc,prot_gc)  
 
-gc_exons_lncrna<-100*(alphabetFrequency(lncrna_exon_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_exon_sequences,as.prob = T)[,"G"])
-gc_introns_lncrna<-100*(alphabetFrequency(lncrna_intron_sequences,as.prob = T)[,"C"]+alphabetFrequency(lncrna_intron_sequences,as.prob = T)[,"G"])
-gc_exons_prot<-100*(alphabetFrequency(protein_exons_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_exons_sequences,as.prob = T)[,"G"])
-gc_introns_prot<-100*(alphabetFrequency(protein_intron_sequences,as.prob = T)[,"C"]+alphabetFrequency(protein_intron_sequences,as.prob = T)[,"G"])
-
-gc_table_box<-data.table(transcript_gc=c(gc_exons_lncrna,gc_introns_lncrna,gc_exons_prot,gc_introns_prot),category=c(rep("lncRNA_exons",length(gc_exons_lncrna)),rep("lncRNA_introns",length(gc_introns_lncrna)),rep("protein_exons",length(prot_gc)),rep("protein_introns")))
-
-gc_table_box[,cate:=ifelse(grepl("lncRNA",category),"lncRNA","protein")]
-gc_table_box[,element:=ifelse(grepl("exons",category),"Exons","Introns")]
 
 
-gc_box<-ggplot(gc_table_box,aes(x=cate,y=transcript_gc,fill=cate)) +
-  geom_boxplot(width=0.75,alpha=0.8) +
-  theme_bw() +
-  facet_wrap(.~element) +
-  scale_fill_manual(values=c("indianred2","steelblue")) +
-  theme(axis.title.x=element_blank()) +
-  theme(legend.position = "none") +
-  ylab("GC content") +
-  geom_hline(yintercept = genome_gc,linetype="dotted",size=1)
-
-gc_box
-
-ggsave(gc_box,filename = "gc_box.png",height = 4,width = 6)
-
-exons_clean_lncrna_rnaspades<-rnaspades_filtered_exons[transcript%in%rnaspades_filtered_list]
-exons_clean_lncrna_rnaspades[,gene:=str_extract(transcript,"NODE_\\d*")]
-exons_clean_lncrna_trinity<-trinity_filtered_exons[transcript%in%trinity_filtered_list]
-exons_clean_lncrna_trinity[,gene:=str_extract(transcript,".*(?=_i\\d*)")]
+exons_clean_lncrna_rnaspades<-rnaspades_filtered_exons
+exons_clean_lncrna_trinity<-trinity_filtered_exons
 exons_clean_lncrna_together<-rbind(exons_clean_lncrna_rnaspades,exons_clean_lncrna_trinity)
-rnaspades_paf_filtered_more_iso<-makeGRangesFromDataFrame(rnaspades_paf_filtered_more_iso,keep.extra.columns = T,seqnames.field = "target_name",start.field = "target_start",end.field = "target_end")
-trinity_paf_filtered_more_iso<-makeGRangesFromDataFrame(trinity_paf_filtered_more_iso,keep.extra.columns = T,seqnames.field = "target_name",start.field = "target_start",end.field = "target_end")
+rnaspades_paf_filtered_iso<-makeGRangesFromDataFrame(rnaspades_paf_filtered_iso,keep.extra.columns = T,seqnames.field = "target_name",start.field = "target_start",end.field = "target_end")
+trinity_paf_filtered_iso<-makeGRangesFromDataFrame(trinity_paf_filtered_iso,keep.extra.columns = T,seqnames.field = "target_name",start.field = "target_start",end.field = "target_end")
 
-rnaspades_paf_filtered_more_iso_split<-split(rnaspades_paf_filtered_more_iso[rnaspades_paf_filtered_more_iso$query_name%in%exons_clean_lncrna_rnaspades$transcript],rnaspades_paf_filtered_more_iso[rnaspades_paf_filtered_more_iso$query_name%in%exons_clean_lncrna_rnaspades$transcript]$query_name)
-trinity_paf_filtered_more_iso_split<-split(trinity_paf_filtered_more_iso[trinity_paf_filtered_more_iso$query_name%in%exons_clean_lncrna_trinity$transcript],trinity_paf_filtered_more_iso[trinity_paf_filtered_more_iso$query_name%in%exons_clean_lncrna_trinity$transcript]$query_name)
+rnaspades_paf_filtered_iso_split<-split(rnaspades_paf_filtered_iso,rnaspades_paf_filtered_iso$query_name)
+trinity_paf_filtered_iso_split<-split(trinity_paf_filtered_iso,trinity_paf_filtered_iso$query_name)
 
 exons_clean_lncrna_rnaspades_gr<-makeGRangesFromDataFrame(exons_clean_lncrna_rnaspades,keep.extra.columns = T)
-exons_clean_lncrna_rnaspades_gr<-exons_clean_lncrna_rnaspades_gr[exons_clean_lncrna_rnaspades_gr$transcript%in%rnaspades_paf_filtered_more_iso$query_name]
+exons_clean_lncrna_rnaspades_gr<-exons_clean_lncrna_rnaspades_gr[exons_clean_lncrna_rnaspades_gr$transcript%in%rnaspades_paf_filtered_iso$query_name]
 exons_clean_lncrna_rnaspades_gr_split<-split(exons_clean_lncrna_rnaspades_gr,exons_clean_lncrna_rnaspades_gr$transcript)
 
-rnaspades_filtered_introns_clean<-unlist(GenomicRanges::setdiff(rnaspades_paf_filtered_more_iso_split,exons_clean_lncrna_rnaspades_gr_split))
-rnaspades_filtered_introns_clean<-rnaspades_filtered_introns_clean[width(rnaspades_filtered_introns_clean)>1]
+rnaspades_filtered_introns_clean<-unlist(GenomicRanges::setdiff(rnaspades_paf_filtered_iso_split,exons_clean_lncrna_rnaspades_gr_split))
+
 
 
 exons_clean_lncrna_trinity_gr<-makeGRangesFromDataFrame(exons_clean_lncrna_trinity,keep.extra.columns = T)
-exons_clean_lncrna_trinity_gr<-exons_clean_lncrna_trinity_gr[exons_clean_lncrna_trinity_gr$transcript%in%trinity_paf_filtered_more_iso$query_name]
+exons_clean_lncrna_trinity_gr<-exons_clean_lncrna_trinity_gr[exons_clean_lncrna_trinity_gr$transcript%in%trinity_paf_filtered_iso$query_name]
 exons_clean_lncrna_trinity_gr_split<-split(exons_clean_lncrna_trinity_gr,exons_clean_lncrna_trinity_gr$transcript)
 
-trinity_filtered_introns_clean<-unlist(GenomicRanges::setdiff(trinity_paf_filtered_more_iso_split,exons_clean_lncrna_trinity_gr_split))
-trinity_filtered_introns_clean<-trinity_filtered_introns_clean[width(trinity_filtered_introns_clean)>1]
+trinity_filtered_introns_clean<-unlist(GenomicRanges::setdiff(trinity_paf_filtered_iso_split,exons_clean_lncrna_trinity_gr_split))
 
 
 lncrna_filtered_introns_clean<-c(rnaspades_filtered_introns_clean,trinity_filtered_introns_clean)
@@ -1584,7 +1557,7 @@ repeats_plot_20<-ggplot(data=overlaps_repeat_together_num_table_20,aes(x=reorder
   scale_fill_got(discrete = T,option="Martell",name="lncRNA element",labels=c("intron","egzon","5' regija"))
 
 repeats_plot_20
-ggsave(repeats_plot_20,file="repeats_plot_20.jpg")
+ggsave(repeats_plot_20,file="repeats_plot_20.png")
 
 
 #length sum normalization (20)
@@ -1663,7 +1636,7 @@ repeats_plot_normalized_sum_bases_20<-ggplot(data=overlaps_repeat_together_num_t
   
 repeats_plot_normalized_sum_bases_20
 
-ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.jpg",width=7,height = 6)
+ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.png",width=7,height = 6)
 
 overlaps_repeat_lncrna_num_table_20_new<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
 overlaps_repeat_protein_num_table_20_new<-protein_repeat_overlap_category_20_prot_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
@@ -1714,7 +1687,7 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   
 repeats_plot_normalized_sum_bases_20_2
 
-ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.jpg",width=7.6,height = 3.5)
+ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.png",width=7.6,height = 3.5)
 
 #Sponge BLASTn analysis
 
@@ -1746,7 +1719,7 @@ numb_gene_in_genomes_plot<-ggplot(data=numb_gene_in_genomes_table,aes(x=number_o
 
 numb_gene_in_genomes_plot
 
-ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.jpg")
+ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.png")
 
 blast_results_sponge_transcriptomes_eval_filt[sstart>send,':='(sstart=send,send=sstart)]
 blast_gr<-makeGRangesFromDataFrame(blast_results_sponge_transcriptomes_eval_filt,start.field = "qstart",end.field="qend",seqnames.field = "qseqid",ignore.strand=T,keep.extra.columns = T)
@@ -1803,7 +1776,7 @@ blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_pe
 blast_heatmap_plot
 
 
-ggsave(blast_heatmap_plot,file="blast_heatmap_plot.jpg",width = 7.6,height = 8)
+ggsave(blast_heatmap_plot,file="blast_heatmap_plot.png",width = 7.6,height = 8)
 
 #EM transcripts
 
@@ -1932,7 +1905,7 @@ fpkm_prot_lncrna_plot<-ggplot(data=read_counts_table_longer,aes(x=category,y=FPK
   theme(legend.position = "none") +
   theme(axis.title.x=element_blank())
 fpkm_prot_lncrna_plot
-ggsave(fpkm_prot_lncrna_plot,file="fpkm_prot_lncrna_plot.jpg")
+ggsave(fpkm_prot_lncrna_plot,file="fpkm_prot_lncrna_plot.png")
 
 #quantiles
 
@@ -1972,7 +1945,7 @@ fpkm_groups_all_lncrna_plot<-ggplot(data=read_counts_table_lncrna_class,aes(x=FP
   theme(strip.text = element_text(size = 6.5))
 
 fpkm_groups_all_lncrna_plot 
-ggsave(fpkm_groups_all_lncrna_plot,file="fpkm_groups_all_lncrna_plot.jpg",width=6,height = 5)
+ggsave(fpkm_groups_all_lncrna_plot,file="fpkm_groups_all_lncrna_plot.png",width=6,height = 5)
 #expression boxplots
 read_counts_table_longer_lncrna<-read_counts_table_longer[category=="lncRNA"]
 read_counts_table_longer_lncrna[,gene_id:=as.double(gene_id)]
@@ -1989,7 +1962,7 @@ fpkm_lncrna_class_plot<-ggplot(data=read_counts_table_longer_lncrna_class,aes(x=
   theme(axis.text.x = element_text(angle = 50, hjust = 1)) 
 
 fpkm_lncrna_class_plot
-ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.jpg",width = 6,height = 5)
+ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.png",width = 6,height = 5)
 
 read_counts_table_longer_lncrna_class_day1<-read_counts_table_longer_lncrna_class[experiment=="day1"]
 kruskal.test(x = c(read_counts_table_longer_lncrna_class_day1[class=="intergenic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day1[class=="intronic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day1[class=="overlapping_lncRNA"]$FPKM),g=c(rep(1,length(read_counts_table_longer_lncrna_class_day1[class=="intergenic_lncRNA"]$FPKM)),rep(2,length(read_counts_table_longer_lncrna_class_day1[class=="intronic_lncRNA"]$FPKM)),rep(3,length(read_counts_table_longer_lncrna_class_day1[class=="overlapping_lncRNA"]$FPKM))))
@@ -2039,7 +2012,7 @@ fpkm_lncrna_repeats_plot<-ggplot(data=lncrna_repeat_overlap_category_class_merge
 
 
 fpkm_lncrna_repeats_plot
-ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.jpg",width = 6,height = 5)
+ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.png",width = 6,height = 5)
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=log10(FPKM)]
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_2<-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[experiment=="day1"]
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,cate:=paste(element,repeat_class,sep=" ")]
@@ -2067,7 +2040,7 @@ fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_me
 
 
 fpkm_lncrna_repeats_barplot
-ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.jpg",width=5,height = 4)
+ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.png",width=5,height = 4)
 
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp<-copy(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,cate:=paste(repeat_class,element,sep="_")]
@@ -2099,7 +2072,7 @@ fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_cl
   theme(legend.text = element_text(size=9)) 
 
 fpkm_prot_plot
-ggsave(fpkm_prot_plot,file="fpkm_prot_plot.jpg",width = 7,height = 4)
+ggsave(fpkm_prot_plot,file="fpkm_prot_plot.png",width = 7,height = 4)
 
 anova_class_prot<-aov(FPKM~lncrna_class,data=read_counts_table_longer_prot_merged)
 TukeyHSD(anova_class_prot)
@@ -2141,7 +2114,7 @@ pval_dist_plot<-ggplot(randfold_together_one,aes(x=p_value)) +
   xlab("p-vrijednost") +
   ylab("Broj molekula lncRNA")
 pval_dist_plot
-ggsave(pval_dist_plot,file="pval_dist_plot.jpg",width=6,height = 5)
+ggsave(pval_dist_plot,file="pval_dist_plot.png",width=6,height = 5)
 
 randfold_together_one_merged<-merge(randfold_together_one,lncRNA_classification_table,by="transcript_name")
 
@@ -2157,7 +2130,7 @@ class_pval_plot<-ggplot(randfold_together_one_merged,aes(x=class,y=p_value,fill=
   theme(legend.text = element_text(size=9.5))
   class_pval_plot
   
-  ggsave(class_pval_plot,file="class_pval_plot.jpg",width = 6,height = 5)
+  ggsave(class_pval_plot,file="class_pval_plot.png",width = 6,height = 5)
 
 
 randfold_together_one_merged[,log_p_value:=log10(p_value)]
@@ -2201,7 +2174,7 @@ inter_prot_cod_distance_plot<-ggplot(data=intergenic_prot_nearest_table,aes(x=di
 
 inter_prot_cod_distance_plot
   
-ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.jpg",width = 5,height = 3.8)
+ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.png",width = 5,height = 3.8)
 
 setnames(intergenic_prot_nearest_table,c("seqnames1","start1","end1","gene_id","seqnames2","start2","end2","attribute","distance"))
 
@@ -2307,7 +2280,7 @@ fpkm_lncrna_class_plot<-ggplot(data=read_counts_table_lncrna_class,aes(x=class,y
   theme(axis.text.x = element_text(angle = 50, hjust = 1)) 
 
 fpkm_lncrna_class_plot
-ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.jpg",width = 6,height = 5)
+ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.png",width = 6,height = 5)
 
 
 kruskal.test(x = c(read_counts_table_lncrna_class[class=="Intergenske lncRNA"]$FPKM,read_counts_table_lncrna_class[class=="Intronske lncRNA"]$FPKM,read_counts_table_lncrna_class[class=="Preklapajuce lncRNA"]$FPKM),g=c(rep(1,length(read_counts_table_lncrna_class[class=="Intergenske lncRNA"]$FPKM)),rep(2,length(read_counts_table_lncrna_class[class=="Intronske lncRNA"]$FPKM)),rep(3,length(read_counts_table_lncrna_class[class=="Preklapajuce lncRNA"]$FPKM))))
@@ -2353,7 +2326,7 @@ fpkm_lncrna_repeats_plot<-ggplot(data=lncrna_repeat_overlap_category_class_merge
 
 
 fpkm_lncrna_repeats_plot
-ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.jpg",width = 6,height = 5)
+ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.png",width = 6,height = 5)
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=log10(FPKM)]
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,cate:=paste(element,repeat_class,sep=" ")]
 anova_rep<-aov(log_FPKM~cate, lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
@@ -2379,7 +2352,7 @@ fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_me
 
 
 fpkm_lncrna_repeats_barplot
-ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.jpg",width=5,height = 4)
+ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.png",width=5,height = 4)
 
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp<-copy(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,cate:=paste(repeat_class,element,sep="_")]
@@ -2408,7 +2381,7 @@ fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_cl
   theme(legend.text = element_text(size=9)) 
 
 fpkm_prot_plot
-ggsave(fpkm_prot_plot,file="fpkm_prot_plot.jpg",width = 7,height = 4)
+ggsave(fpkm_prot_plot,file="fpkm_prot_plot.png",width = 7,height = 4)
 
 anova_class_prot<-aov(FPKM~lncrna_class,data=read_counts_table_longer_prot_merged)
 TukeyHSD(anova_class_prot)
