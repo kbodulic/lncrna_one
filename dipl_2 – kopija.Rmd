@@ -1304,6 +1304,7 @@ norm_width_1bb_prot<-1000*length(protein_final_reduced_together_1kb)+sum(start(p
 regions_lncrna_long<-lncrnas_final_reduced_together_1kb
 end(regions_lncrna_long)<-(start(regions_lncrna_long)+999)
 regions_lncrna_together<-c(regions_lncrna_long,regions_lncrna_short)
+
 regions_prot_long<-protein_final_reduced_together_1kb
 end(regions_prot_long)<-(start(regions_prot_long)+999)
 regions_prot_together<-c(regions_prot_long,regions_prot_short)
