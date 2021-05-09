@@ -1131,7 +1131,7 @@ intergenic_nearest_gene<-nearest(intergenic_lncrna_granges,protein_coding_genes_
 prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene]
 
 
-intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$query_name,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
+intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$gene_id,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
 
 inter_on_contigs_without_genes<-which(is.na(intergenic_prot_nearest_table$seqnames2))
 length(inter_on_contigs_without_genes)
@@ -1273,6 +1273,7 @@ repeatmasker<-readRDS("AllRepeatMaskerFiles_filtered.RDS")
 setnames(repeatmasker,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start","end","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrretID","type","elementtype"))
 repeatmasker_esu<-repeatmasker[species=="Eunapius"]
 repeatmasker_esu<-repeatmasker_esu[repeat_class!="Low complexity" & repeat_class!="Simple repeat"]
+repeatmasker_esu[,ID:=.GRP,by=c("query_name","start","end")]
 repeatmasker_esu_granges<-makeGRangesFromDataFrame(repeatmasker_esu,seqnames.field = "query_name",keep.extra.columns = T,ignore.strand = T)
 
 #within overlaps
@@ -1285,8 +1286,7 @@ start(regions_lncrna_short)<-(rep(1,length(lncrnas_final_reduced_together_1kb_sh
 new_starts<-start(lncrnas_final_reduced_together_1kb)-1000
 start(lncrnas_final_reduced_together_1kb)<-new_starts
 lncrnas_final_reduced_together_1kb_final<-c(lncrnas_final_reduced_together_1kb,lncrnas_final_reduced_together_1kb_short)
-norm_width_1bb_lncrna<-1000*length(lncrnas_final_reduced_together_1kb)+sum(start(lncrnas_final_reduced_together_1kb_short))
-
+norm_width_1bb_lncrna<-1000*length(lncrnas_final_reduced_together_1kb)+sum(width(regions_lncrna_short))
 
 protein_final_reduced_together_1kb<-protein_coding_genes_granges[start(protein_coding_genes_granges)>1000]
 protein_final_reduced_together_1kb_short<-protein_coding_genes_granges[start(protein_coding_genes_granges)<=1000]
@@ -1297,14 +1297,13 @@ start(regions_prot_short)<-(rep(1,length(protein_final_reduced_together_1kb_shor
 new_starts_prot<-start(protein_final_reduced_together_1kb)-1000
 start(protein_final_reduced_together_1kb)<-new_starts_prot
 protein_final_reduced_together_1kb_final<-c(protein_final_reduced_together_1kb,protein_final_reduced_together_1kb_short)
-norm_width_1bb_prot<-1000*length(protein_final_reduced_together_1kb)+sum(start(protein_final_reduced_together_1kb_short))
+norm_width_1bb_prot<-1000*length(protein_final_reduced_together_1kb)+sum(width(regions_prot_short))
 
 
 #only_1kb_regions
 regions_lncrna_long<-lncrnas_final_reduced_together_1kb
 end(regions_lncrna_long)<-(start(regions_lncrna_long)+999)
 regions_lncrna_together<-c(regions_lncrna_long,regions_lncrna_short)
-
 regions_prot_long<-protein_final_reduced_together_1kb
 end(regions_prot_long)<-(start(regions_prot_long)+999)
 regions_prot_together<-c(regions_prot_long,regions_prot_short)
@@ -1371,7 +1370,7 @@ overlaps_repeat_together_num_table[,percentage_genes_region:=100*genes_with_tran
 
 
 overlaps_repeats_lncrna_bases<-findOverlaps(repeatmasker_esu_granges,lncrnas_final_reduced_together_1kb_final,ignore.strand=T,type="any")
-overlaps_repeats_lncrna_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_bases)]),as.data.table(lncrnas_final_reduced_together[subjectHits(overlaps_repeats_lncrna_bases)]))
+overlaps_repeats_lncrna_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_bases)]),as.data.table(lncrnas_final_reduced_together_1kb_final[subjectHits(overlaps_repeats_lncrna_bases)]))
 setnames(overlaps_repeats_lncrna_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_lncrna_bases_table)) {
@@ -1384,7 +1383,7 @@ overlaps_repeats_lncrna_bases_table[,intersect_width:=inter_width_vector]
 
 overlaps_repeats_exons_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_exons_clean,ignore.strand=T)
 overlaps_repeats_exons_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_exons_20)]),as.data.table(lncrna_filtered_exons_clean[subjectHits(overlaps_repeats_exons_20)]))
-setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","transcript","gene"))
+setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","transcript"))
 overlaps_repeats_exons_table_20<-merge(overlaps_repeats_exons_table_20,isoform_map_table_together_cp)
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_exons_table_20)) {
@@ -1420,6 +1419,8 @@ lncrna_overlap_exons_20<-unique(data.table(ID=overlaps_repeats_exons_table_20$ID
 
 
 lncrna_overlap_introns_20<-unique(data.table(ID=overlaps_repeats_introns_table_20$ID,gene_id=overlaps_repeats_introns_table_20$gene_id,intersect=overlaps_repeats_introns_table_20$intersect_width))
+
+
 lncrna_overlap_regions_20<-unique(data.table(ID=overlaps_repeats_lncrna_bases_table_regions$ID,gene_id=overlaps_repeats_lncrna_bases_table_regions$gene_id,intersect=overlaps_repeats_lncrna_bases_table_regions$intersect_width))
 
 
@@ -1436,16 +1437,19 @@ lncrna_repeat_overlap_category_20<-rbind(lncrna_overlap_exons_20,lncrna_overlap_
 
 lncrna_repeat_overlap_category_20_class<-merge(lncrna_repeat_overlap_category_20,lncRNA_classification_table_with_gene_id,by="gene_id")
 
-lncrna_repeat_overlap_category_20_class_merged<-merge(lncrna_repeat_overlap_category_20_class,unique(overlaps_repeats_introns_table_20[,.SD,.SDcols=c("ID","repeat_class")]),by="ID")
+lncrna_repeat_overlap_category_20_class_merged<-merge(lncrna_repeat_overlap_category_20_class,unique(repeatmasker_esu[,.SD,.SDcols=c("ID","repeat_class")]),by="ID")
 
 lncrna_repeat_overlap_category_20_class_merged[,more:=ifelse(nrow(.SD)>1,T,F),by=c("ID","gene_id")]
 lncrna_repeat_overlap_category_20_class_merged[,max_width_element:=ifelse(.SD==max(.SD),T,F),.SDcols="intersect",by=c("gene_id","ID")]
 lncrna_repeat_overlap_category_20_class_merged[max_width_element==T,more:=F]
 lncrna_repeat_overlap_category_20_class_merged<-lncrna_repeat_overlap_category_20_class_merged[more==F]
+
+overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("repeat_class","category","class")]
+
+
 #protein transposone overlaps - 20
 
 
-overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("repeat_class","category","class")]
 
 
 
@@ -1454,7 +1458,7 @@ overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_mer
 
 
 overlaps_repeats_proteins_bases<-findOverlaps(repeatmasker_esu_granges,protein_final_reduced_together_1kb_final,ignore.strand=T,type="any")
-overlaps_repeats_proteins_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins_bases)]),as.data.table(protein_coding_genes_granges[subjectHits(overlaps_repeats_proteins_bases)]))
+overlaps_repeats_proteins_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins_bases)]),as.data.table(protein_final_reduced_together_1kb_final[subjectHits(overlaps_repeats_proteins_bases)]))
 setnames(overlaps_repeats_proteins_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_proteins_bases_table)) {
@@ -1537,28 +1541,6 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20<-copy(overlaps_repeat
 
 
 overlaps_repeat_together_num_table_20[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
-overlaps_repeat_together_num_table_20[class=="intergenic_lncRNA",class:="intergenske lncRNA"]
-overlaps_repeat_together_num_table_20[class=="intronic_lncRNA",class:="intronske lncRNA"]
-overlaps_repeat_together_num_table_20[class=="overlapping_lncRNA",class:="preklapajuće lncRNA"]
-overlaps_repeat_together_num_table_20[class=="protein_coding_genes",class:="protein kodirajući geni"]
-
-
-
-repeats_plot_20<-ggplot(data=overlaps_repeat_together_num_table_20,aes(x=reorder(repeat_class,-number_of_bases),y=number_of_bases,fill=category)) +
-  geom_bar(position=position_dodge(preserve = "single"),stat = "identity", width=0.7,col="black") +
-  theme_bw() +
-  facet_wrap(.~class) +
-  theme(legend.position = "top") + 
-  theme(axis.text.x = element_text(angle = 50, hjust = 1,size=5)) +
-  xlab("Obitelj ponavljanja") +
-  ylab("Broj baza koje se preklapaju s ponavljanjima") +
-  labs(fill = "lncRNA element",size=5) +
-  theme(axis.title=element_text(size=8)) +
-  theme(legend.title = element_text(size=8,face="bold")) +
-  scale_fill_got(discrete = T,option="Martell",name="lncRNA element",labels=c("intron","egzon","5' regija"))
-
-repeats_plot_20
-ggsave(repeats_plot_20,file="repeats_plot_20.png")
 
 
 #length sum normalization (20)
@@ -1609,12 +1591,13 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_ln
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="exon",number_of_bases:=number_of_bases/protein_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="intron",number_of_bases:=number_of_bases/protein_introns_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="five_prime",number_of_bases:=number_of_bases/protein_regions_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20<-overlaps_repeat_together_num_table_normalized_sum_bases_20[is.na(repeat_class)==F]
+
+
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA",class:="Intergenske lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA",class:="Intronske lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA",class:="Preklapajuće lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes",class:="Protein-kodirajući geni"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA",class:="Intergenic lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA",class:="Intronic lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA",class:="Overlapping lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes",class:="Protein-coding genes"]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,repeat_class:=factor(repeat_class,levels = c("Unknown","LINE","LTR","DNA"))]
 overlaps_repeat_together_num_table_normalized_sum_bases_20<-overlaps_repeat_together_num_table_normalized_sum_bases_20[is.na(repeat_class)==F]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,category:=factor(category,levels = c("five_prime","exon","intron"))]
@@ -1622,22 +1605,22 @@ repeats_plot_normalized_sum_bases_20<-ggplot(data=overlaps_repeat_together_num_t
   geom_bar(position=position_dodge(preserve = "single"),stat = "identity", width=0.7,col="black",alpha=0.8) +
   theme_bw() +
   facet_grid(row=vars(class)) +
-  theme(legend.position = "none") + 
+  theme(legend.position = "bottom") + 
   #theme(axis.text.x = element_text(angle = 50, hjust = 1,size=5)) +
-  xlab("Razred transpozona") +
-  ylab("Normalizirana ukupna duljina") +
+  xlab("Transposone class") +
+  ylab("Normalised total length") +
   labs(fill = "lncRNA element",size=5) +
   theme(axis.title=element_text(size=10)) +
   theme(axis.text=element_text(size=9))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("5' regija","egzon","intron")) +
+  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("5' region","Exons","Introns")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
   theme(strip.text.y = element_text(size = 7))
   
 repeats_plot_normalized_sum_bases_20
 
-ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.png",width=7,height = 6)
+ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.jpg",width=7,height = 6)
 
 overlaps_repeat_lncrna_num_table_20_new<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
 overlaps_repeat_protein_num_table_20_new<-protein_repeat_overlap_category_20_prot_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
@@ -1660,10 +1643,10 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_cod
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes" & category=="five_prime",number_of_bases:=number_of_bases/protein_regions_sum]
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA",class:="Intergenske lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA",class:="Intronske lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA",class:="Preklapajuće lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes",class:="Protein-kodirajući geni"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA",class:="Intergeic lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA",class:="Intronic lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA",class:="Overlapping lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes",class:="Protein-coding genes"]
 
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,category:=factor(category,levels = c("five_prime","exon","intron"))]
@@ -1672,8 +1655,8 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   theme_bw() +
   theme(legend.position = "top") + 
   #theme(axis.text.x = element_text(angle = 50, hjust = 1,size=5)) +
-  xlab("Klasa gena") +
-  ylab("Normalizirana ukupna duljina") +
+  xlab("Gene class") +
+  ylab("Normalised total length") +
   labs(fill = "lncRNA element",size=5) +
   theme(axis.title=element_text(size=11)) +
   theme(axis.text=element_text(size=10.3))+
@@ -1688,7 +1671,7 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   
 repeats_plot_normalized_sum_bases_20_2
 
-ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.png",width=7.6,height = 3.5)
+ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.jpg",width=7.6,height = 3.5)
 
 #Sponge BLASTn analysis
 
@@ -1715,12 +1698,12 @@ numb_gene_in_genomes_table<-numb_gene_in_genomes_table[order(number_of_genomes)]
 numb_gene_in_genomes_plot<-ggplot(data=numb_gene_in_genomes_table,aes(x=number_of_genomes,y=number_of_lncrna)) +
   geom_bar(position = "dodge",stat="identity",width=0.6,col="black", fill="indianred1") +
   theme_bw() +
-  xlab("Broj vrsta s BLASTn pogotcima pojedine lncRNA") +
-  ylab("Broj lncRNA")
+  xlab("Number of species hit by a lncRNA") +
+  ylab("Number of lncRNA")
 
 numb_gene_in_genomes_plot
 
-ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.png")
+ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.jpg")
 
 blast_results_sponge_transcriptomes_eval_filt[sstart>send,':='(sstart=send,send=sstart)]
 blast_gr<-makeGRangesFromDataFrame(blast_results_sponge_transcriptomes_eval_filt,start.field = "qstart",end.field="qend",seqnames.field = "qseqid",ignore.strand=T,keep.extra.columns = T)
@@ -1757,10 +1740,12 @@ blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species[,species:=str_remove(s
 blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species[,species:=str_remove(species,"_transcriptome")]
 species_ordered2<-str_remove(species_ordered,"_genome")
 species_ordered2<-unique(str_remove(species_ordered2,"_transcriptome"))
+species_ordered3<-species_ordered2
+species_ordered3[species_ordered3=="Ephydatia_mullerig"]<-"Ephydatia_mulleri" 
 blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species,aes(x=species,y=qseqid,fill=sumqperclen)) +
   geom_tile(alpha=1.2) +
-  scale_fill_hp(house = "HermioneGranger",name="Omjer duljine BLAST pogotka i\nukupne duljine ulazne lncRNA (%) ",na.value="white") +
-  ylab("Molekula lncRNA") + 
+  scale_fill_hp(house = "HermioneGranger",name="Percentage of lncRNA aligned\n to subject sequence",na.value="white",direction = -1) +
+  ylab("lncRNA") + 
   theme(legend.position="top") +
   theme(legend.key.size = unit(0.3, "cm"),
         legend.key.width = unit(0.5,"cm")) +
@@ -1769,7 +1754,7 @@ blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_pe
   theme(axis.title.y = element_text(size=9.2)) +
   theme(axis.ticks.y=element_blank()) +
   theme(axis.text.y=element_blank())  +
-  scale_x_discrete(limits=species_ordered2) +
+  scale_x_discrete(limits=species_ordered2,labels=species_ordered3) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1,size=7,colour = label_cols)) 
 
 
@@ -1777,29 +1762,9 @@ blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_pe
 blast_heatmap_plot
 
 
-ggsave(blast_heatmap_plot,file="blast_heatmap_plot.png",width = 7.6,height = 8)
-
-#EM transcripts
+ggsave(blast_heatmap_plot,file="blast_heatmap_plot.jpg",width = 7.6,height = 8)
 
 
-
-em_50_filtered<-blast_gr_q_split_reduce_unlist_dt_lengths[species=="Ephydatia_mulleri_transcriptome" & sumqperclen>=100]
-em_50_filtered[,sseqid:=str_extract(sseqid,"(?<=transcriptome_).*")]
-em_50_fortrin<-em_50_filtered$sseqid
-emu_trans_length.txt<-fread("emu_trans_length.txt")
-setnames(emu_trans_length.txt,c("transcript_id","length"))
-trinotate_em<-fread("trinotate_annotation_report_Emu_tri.xls")
-trinotate_em<-trinotate_em[,.SD,.SDcols=c("transcript_id","prot_id","prot_coords")]
-trinotate_em[,':='(prot_start=as.numeric(str_extract(prot_coords,"[[:digit:]]+(?=\\-)")),prot_end=as.numeric(str_extract(prot_coords,"(?<=\\-)[[:digit:]]+")))]
-trinotate_em[,':='(orf_length=abs(prot_end-prot_start),prot_length=round(abs(prot_end-prot_start)/3,0))]
-trinotate_em<-merge(trinotate_em,emu_trans_length.txt)
-em_50_filtered<-em_50_filtered[,.SD,.SDcols=c("qseqid","sseqid")]
-setnames(em_50_filtered,c("qseqid","transcript_id"))
-trinotate_em_merged<-merge(trinotate_em,em_50_filtered,by="transcript_id")
-trinotate_em_merged[is.na(orf_length),orf_length:=0]
-trinotate_em_merged[,is_min_orf:=ifelse(.SD==min(.SD),T,F),.SDcols="orf_length",by=qseqid]
-trinotate_em_merged<-unique(trinotate_em_merged[is_min_orf==T],by="qseqid")
-trinotate_em_merged[length > 200 & orf_length<=150,.N]
 #findig candidatess for multiple alignment
 
 blast_gr_q_split_reduce_unlist_dt_lengths<-blast_gr_q_split_reduce_unlist_dt_lengths[grepl("transcriptome",species)]
@@ -1819,42 +1784,38 @@ sumandwidth_filtered[sstart>30,sstart:=sstart-30]
 sumandwidth_filtered[send<slen-30,send:=send+30]
 sumandwidth_filtered_gr<-makeGRangesFromDataFrame(sumandwidth_filtered,seqnames.field="sseqid",start.field = "sstart",end.field = "send",ignore.strand = T,keep.extra.columns = T)
 
-sumandwidth_filtered_gr_split<-split(sumandwidth_filtered_gr,sumandwidth_filtered_gr$qseqid)
 
-sumandwidth_filtered_gr_split_range<-range(sumandwidth_filtered_gr_split)                                                                                 
 
-sumandwidth_filtered_gr_split_range_unlist<-unlist(sumandwidth_filtered_gr_split_range)
-
-sumandwidth_filtered_gr_split_range_unlist_table<-as.data.table(sumandwidth_filtered_gr_split_range_unlist)[,.SD,.SDcols=c("seqnames","start","end")]
-sumandwidth_filtered_gr_split_range_unlist_table[,transcript:=names(sumandwidth_filtered_gr_split_range_unlist)]
+sumandwidth_filtered_gr_table<-as.data.table(sumandwidth_filtered_gr)[,.SD,.SDcols=c("seqnames","start","end","qseqid")]
+colnames(sumandwidth_filtered_gr_table)[4]<-"transcript"
 #blast - bed conversion 
 
-sumandwidth_filtered_gr_split_range_unlist_table[,start:=start-1]
+sumandwidth_filtered_gr_table[,start:=start-1]
 
-sumandwidth_filtered_gr_split_range_unlist_table[,species_num:=nrow(.SD),by=transcript]
-sumandwidth_filtered_gr_split_range_unlist_table<-sumandwidth_filtered_gr_split_range_unlist_table[species_num>1]
-sumandwidth_filtered_gr_split_range_unlist_table$species_num<-NULL
-
-
-sumandwidth_filtered_gr_split_range_unlist_table_split<-split(sumandwidth_filtered_gr_split_range_unlist_table,sumandwidth_filtered_gr_split_range_unlist_table$transcript)
+sumandwidth_filtered_gr_table[,species_num:=nrow(.SD),by=transcript]
+sumandwidth_filtered_gr_table<-sumandwidth_filtered_gr_table[species_num>1]
+sumandwidth_filtered_gr_table$species_num<-NULL
 
 
-for (i in sumandwidth_filtered_gr_split_range_unlist_table_split) {
+sumandwidth_filtered_gr_table_split<-split(sumandwidth_filtered_gr_table,sumandwidth_filtered_gr_table$transcript)
+
+
+for (i in sumandwidth_filtered_gr_table_split) {
   write.table(i,file=paste(i$transcript[1],"msa_part_trans.txt",sep="_"),row.names = F, col.names = F, quote = F,sep = "\t")
 }
 
 #whole transcripts
-sumandwidth_filtered_gr_split_range_unlist_table_for_merge<-copy(sumandwidth_filtered_gr_split_range_unlist_table)
+sumandwidth_filtered_gr_table_for_merge<-copy(sumandwidth_filtered_gr_table)
 
-setnames(sumandwidth_filtered_gr_split_range_unlist_table_for_merge,c("sseqid","sstart","send","qseqid"))
-sumandwidth_filtered_gr_split_range_unlist_table_merged<-merge(sumandwidth_filtered_gr_split_range_unlist_table_for_merge,unique(blast_results_sponge_transcriptomes[,.SD,.SDcols=c("sseqid","qseqid","slen")],by=c("sseqid","qseqid")))
+setnames(sumandwidth_filtered_gr_table_for_merge,c("sseqid","sstart","send","qseqid"))
+sumandwidth_filtered_gr_table_merged<-merge(sumandwidth_filtered_gr_table_for_merge,unique(blast_results_sponge_transcriptomes[,.SD,.SDcols=c("sseqid","qseqid","slen")],by=c("sseqid","qseqid")))
 
-sumandwidth_filtered_gr_split_range_unlist_table_merged[,':='(sstart=0,send=slen)]
-sumandwidth_filtered_gr_split_range_unlist_table_merged$slen<-NULL
-sumandwidth_filtered_gr_split_range_unlist_table_merged<-sumandwidth_filtered_gr_split_range_unlist_table_merged[,.SD,.SDcols=c("sseqid","sstart","send","qseqid")]
-sumandwidth_filtered_gr_split_range_unlist_table_whole_trans_split<-split(sumandwidth_filtered_gr_split_range_unlist_table_merged,sumandwidth_filtered_gr_split_range_unlist_table_merged$qseqid)
+sumandwidth_filtered_gr_table_merged[,':='(sstart=0,send=slen)]
+sumandwidth_filtered_gr_table_merged$slen<-NULL
+sumandwidth_filtered_gr_table_merged<-sumandwidth_filtered_gr_table_merged[,.SD,.SDcols=c("sseqid","sstart","send","qseqid")]
+sumandwidth_filtered_gr_table_whole_trans_split<-split(sumandwidth_filtered_gr_table_merged,sumandwidth_filtered_gr_table_merged$qseqid)
 
-for (i in sumandwidth_filtered_gr_split_range_unlist_table_whole_trans_split) {
+for (i in sumandwidth_filtered_gr_table_whole_trans_split) {
   write.table(i,file=paste(i$qseqid[1],"msa_whole_trans.txt",sep="_"),row.names = F, col.names = F, quote = F,sep = "\t")
 }
 
@@ -1878,305 +1839,13 @@ setnames(filtered_together_paf_union_exons_saf,c("GeneID","Chr","Start","End","S
 saf_together<-unique(rbind(protein_exons_dt_saf,filtered_together_paf_union_exons_saf))
 
 write.table(saf_together,file="lncrna_and_prot_annotation.saf",row.names = F,quote = F,sep = "\t")
-
-
-#counts
-
-read_counts_table<-fread("day1_day10_rna_to_genome_dup_counts.txt")
-read_counts_table<-read_counts_table[,.SD,.SDcols=c("Geneid","Length","../sorted_RNAseq_day1_to_Esu_genome.bam","../sorted_RNAseq_day10_to_Esu_genome.bam")]
-setnames(read_counts_table,c("gene_id","gene_length","counts_day1","counts_day10"))
-total_counts_table<-fread("total_mapped_counts.txt")
-setnames(total_counts_table,"counts")
-total_counts_table[,experiment:=c("day1","day10")]
-read_counts_table<-read_counts_table[counts_day1 !=0]
-read_counts_table<-read_counts_table[counts_day10!=0]
-read_counts_table[,counts_scaled_milion_day1:=1e+06*counts_day1]
-read_counts_table[,counts_scaled_milion_day10:=1e+06*counts_day10]
-read_counts_table[,FPKM_day1:=counts_scaled_milion_day1/(total_counts_table[experiment=="day1"]$counts*1e-3*gene_length)]
-read_counts_table[,FPKM_day10:=counts_scaled_milion_day10/(total_counts_table[experiment=="day10"]$counts*1e-3*gene_length)]
-read_counts_table[grepl("\\D",gene_id)==T,category:="protein_coding_gene"]
-read_counts_table[is.na(category)==T,category:="lncRNA"]
-read_counts_table_longer<-as.data.table(pivot_longer(data=read_counts_table,cols = c("FPKM_day1","FPKM_day10"),names_to = "experiment",values_to = "FPKM",names_prefix = "FPKM_"))
-fpkm_prot_lncrna_plot<-ggplot(data=read_counts_table_longer,aes(x=category,y=FPKM,fill=category)) +
-  geom_boxplot() +
-  theme_bw() +
-  facet_wrap(.~experiment) +
-  scale_y_log10() +
-  scale_fill_manual(values=c("indianred2","steelblue")) +
-  theme(legend.position = "none") +
-  theme(axis.title.x=element_blank())
-fpkm_prot_lncrna_plot
-ggsave(fpkm_prot_lncrna_plot,file="fpkm_prot_lncrna_plot.png")
-
-#quantiles
-
-
-read_counts_table_lncrna<-read_counts_table[category=="lncRNA"]
-read_counts_table_lncrna<-read_counts_table_lncrna[counts_day1 !=0]
-read_counts_table_lncrna<-read_counts_table_lncrna[counts_day10!=0]
-day1_fpkm<-read_counts_table_lncrna$FPKM_day1
-
-day1_quantiles<-quantile(day1_fpkm,probs=seq(0,1,0.1))
-day1_percentiles<-cut(day1_fpkm,breaks = day1_quantiles, labels = paste(seq(0,90,10),seq(10,100,10),sep="-"))
-
-
-read_counts_table_lncrna[,percentiles:=day1_percentiles]
-read_counts_table_lncrna<-read_counts_table_lncrna[is.na(percentiles)==F]
-read_counts_table_lncrna[,percentiles:=paste(percentiles,"%",sep=" ")]
-read_counts_table_lncrna[,FPKM_day1_log:=log(FPKM_day1)]
-read_counts_table_lncrna[,FPKM_day10_log:=log(FPKM_day10)]
-
-read_counts_table_lncrna[,gene_id:=as.double(gene_id)]
-read_counts_table_lncrna_class<-merge(read_counts_table_lncrna,lncRNA_classification_table_with_gene_id,by="gene_id")
-
-
-read_counts_table_lncrna_class[,class:=factor(class,levels = c("intronic_lncRNA","intergenic_lncRNA","overlapping_lncRNA"))]
-read_counts_table_lncrna_class[class=="intronic_lncRNA",class:="Intronske lncRNA"]
-read_counts_table_lncrna_class[class=="intergenic_lncRNA",class:="Intergenske lncRNA"]
-read_counts_table_lncrna_class[class=="overlapping_lncRNA",class:="Preklapajuće lncRNA"]
-fpkm_groups_all_lncrna_plot<-ggplot(data=read_counts_table_lncrna_class,aes(x=FPKM_day1_log,y=FPKM_day10_log,col=percentiles)) +
-  geom_point() +
-  theme_bw() +
-  facet_grid(rows =vars(class)) +
-  scale_color_discrete(name="Postotak\nekspresije") +
-  theme(legend.title = element_text(size=9,face="bold")) +
-  xlab("FPKM knjižnice RNA1 (log10 skalirano)") +
-  ylab("FPKM knjižnice RNA10(log10 skalirano)") +
-  theme(axis.title = element_text(size=8)) +
-  theme(strip.text = element_text(size = 6.5))
-
-fpkm_groups_all_lncrna_plot 
-ggsave(fpkm_groups_all_lncrna_plot,file="fpkm_groups_all_lncrna_plot.png",width=6,height = 5)
-#expression boxplots
-read_counts_table_longer_lncrna<-read_counts_table_longer[category=="lncRNA"]
-read_counts_table_longer_lncrna[,gene_id:=as.double(gene_id)]
-read_counts_table_longer_lncrna_class<-merge(read_counts_table_longer_lncrna,lncRNA_classification_table_with_gene_id,by="gene_id",all.x=T)
-
-fpkm_lncrna_class_plot<-ggplot(data=read_counts_table_longer_lncrna_class,aes(x=class,y=FPKM,fill=class)) +
-  geom_boxplot() +
-  theme_bw() +
-  facet_wrap(.~experiment) +
-  scale_y_log10() +
-  scale_fill_hp(discrete = T,option = "NewtScamander") +
-  theme(legend.position = "none") +
-  theme(axis.title.x=element_blank()) +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) 
-
-fpkm_lncrna_class_plot
-ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.png",width = 6,height = 5)
-
-read_counts_table_longer_lncrna_class_day1<-read_counts_table_longer_lncrna_class[experiment=="day1"]
-kruskal.test(x = c(read_counts_table_longer_lncrna_class_day1[class=="intergenic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day1[class=="intronic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day1[class=="overlapping_lncRNA"]$FPKM),g=c(rep(1,length(read_counts_table_longer_lncrna_class_day1[class=="intergenic_lncRNA"]$FPKM)),rep(2,length(read_counts_table_longer_lncrna_class_day1[class=="intronic_lncRNA"]$FPKM)),rep(3,length(read_counts_table_longer_lncrna_class_day1[class=="overlapping_lncRNA"]$FPKM))))
-
-read_counts_table_longer_lncrna_class_day10<-read_counts_table_longer_lncrna_class[experiment=="day10"]
-kruskal.test(x = c(read_counts_table_longer_lncrna_class_day10[class=="intergenic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day10[class=="intronic_lncRNA"]$FPKM,read_counts_table_longer_lncrna_class_day10[class=="overlapping_lncRNA"]$FPKM),g=c(rep(1,length(read_counts_table_longer_lncrna_class_day10[class=="intergenic_lncRNA"]$FPKM)),rep(2,length(read_counts_table_longer_lncrna_class_day10[class=="intronic_lncRNA"]$FPKM)),rep(3,length(read_counts_table_longer_lncrna_class_day10[class=="overlapping_lncRNA"]$FPKM))))
-#expression and transposons
-
-lncrna_repeat_overlap_category_class_merged_copy<-copy(lncrna_repeat_overlap_category_20_class_merged)
-lncrna_repeat_overlap_category_class_merged_copy[,sum_intersect:=sum(intersect),by=c("gene_id","ID")]
-lncrna_repeat_overlap_category_class_merged_copy[,max_sum:=ifelse(.SD==max(.SD),T,F),.SDcols="sum_intersect",by=gene_id]
-lncrna_repeat_overlap_category_class_merged_copy<-lncrna_repeat_overlap_category_class_merged_copy[max_sum==T]
-
-setnames(lncrna_repeat_overlap_category_class_merged_copy,c("ID","gene_id","intersect","element","transcript","class","repeat_class","more","max_width_element","sum_intersect","max_sum"))
-lncrna_repeat_overlap_category_class_merged_copy_merged<-merge(lncrna_repeat_overlap_category_class_merged_copy,read_counts_table_longer_lncrna[,.SD,.SDcols=c("gene_id","experiment","FPKM")],by="gene_id")
-isoform_map_table_together_cp2<-copy(isoform_map_table_together)
-setnames(isoform_map_table_together_cp2,c("query_name","gene_id"))
-filtered_together_paf_union_copy<-copy(filtered_together_paf_union)
-filtered_together_paf_union_copy<-merge(filtered_together_paf_union_copy,isoform_map_table_together_cp2)
-lncrna_no_repeats<-filtered_together_paf_union_copy[gene_id%in%lncrna_repeat_overlap_category_class_merged_copy_merged$gene_id==F]
-
-lncrna_no_repeats_dt<-data.table(gene_id=lncrna_no_repeats$gene_id)
-lncrna_no_repeats_dt_merged<-merge(lncrna_no_repeats_dt,read_counts_table_longer_lncrna[,.SD,.SDcols=c("gene_id","experiment","FPKM")],by="gene_id")
-lncrna_no_repeats_dt_merged[,repeat_class:="No_transposons"]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep<-rbind(lncrna_repeat_overlap_category_class_merged_copy_merged,lncrna_no_repeats_dt_merged,fill=T)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,repeat_class:=factor(repeat_class,levels = c("Unknown","DNA","LINE","LTR","RC","No_transposons"))]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[experiment=="day1",experiment:="Prvi dan"]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[experiment=="day10",experiment:="Deseti dan"]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,experiment:=factor(experiment,levels = c("Prvi dan","Deseti dan"))]
-
-
-#lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,element:=factor(element,levels = levels_for_plot)]
-
-options(scipen=1000)
-fpkm_lncrna_repeats_plot<-ggplot(data=lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep,aes(x=repeat_class,y=FPKM,fill=element)) +
-  geom_boxplot(alpha=0.8) +
-  theme_bw() +
-  facet_wrap(.~experiment) +
-  scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
-  scale_fill_got(discrete = T,option = "martell",na.value="grey",labels=c("egzon","intron","neodređeno"),direction = -1) +
-  xlab("Razred transpozona") +
-  #theme(axis.text.x=element_blank()) +
-  theme(legend.position = "none") +
-  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","Bez transpozona"))
- 
-
-
-fpkm_lncrna_repeats_plot
-ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.png",width = 6,height = 5)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=log10(FPKM)]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_2<-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[experiment=="day1"]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,cate:=paste(element,repeat_class,sep=" ")]
-anova_rep<-aov(log_FPKM~cate, lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
-TukeyHSD(anova_rep)
-#numbersplot
-
-
-levels_for_plot<-c("five_prime","exon","intron",NA)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,element:=factor(element,levels = levels_for_plot)]
-
-fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep,aes(x=repeat_class,fill=element)) +
-  geom_bar(position="dodge",col="black",alpha=0.8) +
-  theme_bw() +
-  facet_wrap(.~experiment) +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
-  theme(legend.position = "top") +
-  scale_fill_got(discrete = T,option = "martell",na.value="grey",labels=c("5' regija","egzon","intron","Bez transpozona"), name="Element",direction = -1) +
-  xlab("Razred transpozona") +
-  ylab("Broj lncRNA-kodirajućih gena") +
-  theme(legend.title = element_text(size=9,face="bold")) +
-  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","Bez transpozona")) +
-  theme(axis.title.x = element_blank()) +
-  theme(axis.text.x  = element_blank())
-
-
-fpkm_lncrna_repeats_barplot
-ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.png",width=5,height = 4)
-
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp<-copy(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,cate:=paste(repeat_class,element,sep="_")]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,FPKM:=log10(FPKM)]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[is.na(element),element:="no"]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp_day1<-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[experiment=="Prvi dan"]
-anova_fpkm<-aov(FPKM~cate,data = lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp_day1)
-TukeyHSD(anova_fpkm)
-#overlapping proteisn vs non-overlapping proteins
-
-
-read_counts_table_longer_prot<-read_counts_table_longer[category=="protein_coding_gene"]
-setnames(prot_classification_table,c("gene_id","lncrna_class"))
-read_counts_table_longer_prot_merged<-merge(read_counts_table_longer_prot,prot_classification_table,by="gene_id")
-read_counts_table_longer_prot_merged[,lncrna_class:=factor(lncrna_class,levels = c("intronic","intergenic_1kb","overlapping","no_lncRNA"))]
-read_counts_table_longer_prot_merged[experiment=="day1",experiment:="Prvi dan"]
-read_counts_table_longer_prot_merged[experiment=="day10",experiment:="Deseti dan"]
-read_counts_table_longer_prot_merged[,experiment:=factor(experiment,levels = c("Prvi dan","Deseti dan"))]
-options(scipen=1000)
-fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_class,y=FPKM,fill=lncrna_class)) +
-  geom_boxplot() +
-  theme_bw() +
-  facet_wrap(.~experiment) +
-  scale_y_log10() +
-  theme(legend.title = element_text(size=9,face="bold")) +
-  theme(axis.title.x=element_blank()) +
-  theme(axis.text.x =element_blank()) +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Kategorija",labels=c("Proteini s\nintronskom lncRNA","Proteini s intergenskom\nlncRNA bližom od 1 kb","Proteini u\npreklapajućoj lncRNA","Ostal\nproteini")) +
-  theme(legend.text = element_text(size=9)) 
-
-fpkm_prot_plot
-ggsave(fpkm_prot_plot,file="fpkm_prot_plot.png",width = 7,height = 4)
-
-anova_class_prot<-aov(FPKM~lncrna_class,data=read_counts_table_longer_prot_merged)
-TukeyHSD(anova_class_prot)
-#samples for randfold
-
-exonic_lncrnas_randfold<-unique(lncrna_repeat_overlap_category_class_merged_copy$gene)[sample(1:length(unique(lncrna_repeat_overlap_category_class_merged_copy$gene)),size=100,replace = F)]
-
-other_lncrnas_randfold<-unique(lncrna_no_repeats_dt_merged$gene)[sample(1:length(unique(lncrna_no_repeats_dt_merged$gene)),size = 100,replace = F)]
-
-
-write.table(exonic_lncrnas_randfold,file="exonic_lncrnas_randfold.txt",row.names = F,col.names = F,quote = F,sep = "\t")
-write.table(other_lncrnas_randfold,file="other_lncrnas_randfold.txt",row.names = F,col.names = F,quote = F,sep = "\t")
-
-
-
 ```
 
 
 
-```{r}
-#randfold
-
-randfold_res<-fread("randfold_res50.txt",header = F)
-randfold_res_revcomp<-fread("randfold_res50_revcomp.txt",header = F)
-setnames(randfold_res,c("transcript_name","energy","p_value"))
-setnames(randfold_res_revcomp,c("transcript_name","energy","p_value"))
-randfold_res[,category:="norm"]
-randfold_res_revcomp[,category:="revcomp"]
-randfold_together<-rbind(randfold_res,randfold_res_revcomp)
-randfold_together_one<-randfold_together[,.(p_value=min(p_value)),by=transcript_name]
-
-
-
-100*randfold_together_one[p_value<=0.05,.N]/randfold_together_one[,.N]
-100*randfold_together_one[p_value<=0.1,.N]/randfold_together_one[,.N]
-pval_dist_plot<-ggplot(randfold_together_one,aes(x=p_value)) +
-  geom_histogram(fill="indianred2",col="black",binwidth = 0.05) +
-  theme_bw() +
-  xlab("p-vrijednost") +
-  ylab("Broj molekula lncRNA")
-pval_dist_plot
-ggsave(pval_dist_plot,file="pval_dist_plot.png",width=6,height = 5)
-
-randfold_together_one_merged<-merge(randfold_together_one,lncRNA_classification_table,by="transcript_name")
-
-class_pval_plot<-ggplot(randfold_together_one_merged,aes(x=class,y=p_value,fill=class)) +
-  geom_boxplot() +
-  theme_bw() +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Klasa",labels=c("Intergenske lncRNA","Intronske lncRNA","Preklapajuće lncRNA")) +
-  theme(legend.position = "top") +
-  theme(axis.title.x = element_blank()) +
-  theme(axis.text.x = element_blank())  +
-  ylab("p-vrijednost") +
-  theme(legend.title = element_text(face = "bold",size = 10)) +
-  theme(legend.text = element_text(size=9.5))
-  class_pval_plot
-  
-  ggsave(class_pval_plot,file="class_pval_plot.png",width = 6,height = 5)
-
-
-randfold_together_one_merged[,log_p_value:=log10(p_value)]
-anova_p<-aov(log_p_value~class,data=randfold_together_one_merged)
-
-TukeyHSD(anova_p)
-
-
-```
-
 
 
 ```{r}
-#intergenic lncRNA - distance to genes
-lncrnas_final_reduced_together_dt<-as.data.table(lncrnas_final_reduced_together)
-class_gene_together<-unique(rbind(class_genes_rnaspades,class_genes_trinity))
-setnames(lncrnas_final_reduced_together_dt,c("seqnames1","start1","end1","width1","strand1","gene","gene_id"))
-lncrnas_final_reduced_together_dt_merged<-merge(lncrnas_final_reduced_together_dt,class_gene_together,by=c("seqnames1","start1","end1","width1"),all.x=T)
-intergenic_lncrna_dt<-lncrnas_final_reduced_together_dt_merged[class=="intergenic_lncRNA"]
-intergenic_lncrna_granges<-makeGRangesFromDataFrame(intergenic_lncrna_dt,seqnames.field = "seqnames1",start.field = "start1",end.field = "end1",keep.extra.columns = T)
-intergenic_nearest_gene<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
-prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene]
-
-
-intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$gene_id,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
-
-inter_on_contigs_without_genes<-which(is.na(intergenic_prot_nearest_table$seqname2))
-length(inter_on_contigs_without_genes)
-
-intergenic_prot_nearest_table<-intergenic_prot_nearest_table[is.na(seqnames2)==F]
-intergenic_prot_nearest_table[,distance:=ifelse(start1>start2,start1-end2-1,end1-start2+1)]
-
-inter_prot_cod_distance_plot<-ggplot(data=intergenic_prot_nearest_table,aes(x=distance)) +
-  geom_histogram(color="black",fill="skyblue",binwidth = 250) +
-  theme_bw()  +
-  xlab("Udaljenost lncRNA-kodirajućeg gena od najbližeg protein-kodirajućeg gena / pb") +
-  ylab("Broj lncRNA-kodirajućih gena") +
-  coord_cartesian(xlim=c(-10000,10000)) +
-  theme(axis.title.x   = element_text(size=8.5)) +
-  theme(axis.title.y   = element_text(size=8.5)) 
-
-inter_prot_cod_distance_plot
-  
-ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.png",width = 5,height = 3.8)
-
 setnames(intergenic_prot_nearest_table,c("seqnames1","start1","end1","gene_id","seqnames2","start2","end2","attribute","distance"))
 
 #overlapping proteins vs non-overlapping proteins
@@ -2184,16 +1853,16 @@ setnames(intergenic_prot_nearest_table,c("seqnames1","start1","end1","gene_id","
 #intronic
 
 
-intronic_prots_dt<-unique(overlaps_lncRNA_prot_within_table[query_name%in%intersect(overlapping_lncrna,intronic_lncrna)==F])
+intronic_prots_dt<-overlaps_lncRNA_prot_within_table
+isoform_map_table_together_cp2<-copy(isoform_map_table_together_cp)
+setnames(isoform_map_table_together_cp2,c("query_name","gene_id"))
 intronic_prots_dt<-merge(intronic_prots_dt,isoform_map_table_together_cp2,by="query_name")
-intronic_prots_dt<-unique(intronic_prots_dt,by=c("attribute","gene_id"))
 intronic_prots_dt[,distance:=0]
 
 #overlapping
 
-overlapping_prots_dt<-unique(overlaps_prot_lncrna_within_table)
+overlapping_prots_dt<-overlaps_prot_lncrna_within_table
 overlapping_prots_dt<-merge(overlapping_prots_dt,isoform_map_table_together_cp2,by="query_name")
-overlapping_prots_dt<-unique(overlapping_prots_dt,by=c("attribute","gene_id"))
 overlapping_prots_dt[,distance:=0]
 
 
@@ -2217,27 +1886,6 @@ table_adj_lncrna_prot_together_merge[class!="intergenic_lncRNA",keep_col:=T]
 table_adj_lncrna_prot_together_merge<-table_adj_lncrna_prot_together_merge[keep_col==T]
 
 write.table(table_adj_lncrna_prot_together_merge,file = "table_adj_lncrna_prot_together_merge.txt",quote = F,row.names = F,col.names = T)
-
-rnaseq_paf<-fread("rnaseq_together_to_genome_test.paf")[1:100,1:12]
-setnames(rnaseq_paf,c("query_name","query_length","query_start","query_end","strand_ignore","target_name","target_length","target_start","target_end","matches","alignment_block","mapping_quality"))
-
-rnaseq_gr<-makeGRangesFromDataFrame(rnaseq_paf,seqnames.field = "target_name",start.field = "target_start", end.field = "target_end",ignore.strand = T )
-
-lncrna_rna_overlaps<-findOverlaps(lncrnas_final_reduced_together,rnaseq_gr,ignore.strand=T)
-lncrna_rna_overlaps_dt<-cbind(as.data.table(lncrnas_final_reduced_together[queryHits(lncrna_rna_overlaps)]),as.data.table(rnaseq_gr[subjectHits(lncrna_rna_overlaps)]))
-setnames(lncrna_rna_overlaps_dt,c("seqnames1","start1","end1","width1","strand1","lncrna_g","gene_id","seqnames2","start2","end2","width2","strand2"))
-
-exons_gr<-makeGRangesFromDataFrame(table_adj_lncrna_prot_together_merge[,.SD,.SDcols=c("attribute","gene_id","seqnames_exon","start_exon","end_exon")],seqnames.field = "seqnames_exon",start.field="start_exon",end.field = "end_exon",ignore.strand = T,keep.extra.columns = T)
-exons_rna_overlaps<-findOverlaps(exons_gr,rnaseq_gr,ignore.strand=T)
-exons_rna_overlaps_dt<-cbind(as.data.table(exons_gr[queryHits(exons_rna_overlaps)]),as.data.table(rnaseq_gr[subjectHits(exons_rna_overlaps)]))
-setnames(exons_rna_overlaps_dt,c("seqnames1","start1","end1","width1","strand1","attribute","gene_id","seqnames2","start2","end2","width2","strand2"))
-
-unique(merge(lncrna_rna_overlaps_dt,exons_rna_overlaps_dt,by=c("seqnames2","start2","end2")),by=c("gene_id.x","attribute"))
-
-unique(merge(lncrna_rna_overlaps_dt,exons_rna_overlaps_dt,by=c("seqnames2","start2","end2")),by=c("gene_id.x"))
-rm(rnaseq_paf)
-
-write.table(lncrnas_final_reduced_together_dt,file="lncrnas_final_reduced_together_dt.txt",quote = F,col.names = T,row.names = F)
 ```
 
 ```{r}
@@ -2254,37 +1902,36 @@ read_counts_table[,FPKM:=counts_scaled_milion/(total_counts_table$total_mapped_c
 read_counts_table[grepl("\\D",gene_id)==T,category:="protein_coding_gene"]
 read_counts_table[is.na(category)==T,category:="lncRNA"]
 
-#quantiles
 
 
 read_counts_table_lncrna<-read_counts_table[category=="lncRNA"]
-read_counts_table_lncrna<-read_counts_table_lncrna[counts!=0]
 read_counts_table_lncrna[,gene_id:=as.double(gene_id)]
 read_counts_table_lncrna_class<-merge(read_counts_table_lncrna,lncRNA_classification_table_with_gene_id,by="gene_id")
 
 
 read_counts_table_lncrna_class[,class:=factor(class,levels = c("intronic_lncRNA","intergenic_lncRNA","overlapping_lncRNA"))]
-read_counts_table_lncrna_class[class=="intronic_lncRNA",class:="Intronske lncRNA"]
-read_counts_table_lncrna_class[class=="intergenic_lncRNA",class:="Intergenske lncRNA"]
-read_counts_table_lncrna_class[class=="overlapping_lncRNA",class:="Preklapajuće lncRNA"]
+read_counts_table_lncrna_class[class=="intronic_lncRNA",class:="Intronic lncRNA"]
+read_counts_table_lncrna_class[class=="intergenic_lncRNA",class:="Intergenic lncRNA"]
+read_counts_table_lncrna_class[class=="overlapping_lncRNA",class:="Overlapping lncRNA"]
 
 #expression boxplots
 
 
 fpkm_lncrna_class_plot<-ggplot(data=read_counts_table_lncrna_class,aes(x=class,y=FPKM,fill=class)) +
-  geom_boxplot() +
+  geom_boxplot(width=0.6) +
   theme_bw() +
   scale_y_log10() +
   scale_fill_hp(discrete = T,option = "NewtScamander") +
   theme(legend.position = "none") +
   theme(axis.title.x=element_blank()) +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) 
+  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
+  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA"))
 
 fpkm_lncrna_class_plot
 ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.png",width = 6,height = 5)
 
 
-kruskal.test(x = c(read_counts_table_lncrna_class[class=="Intergenske lncRNA"]$FPKM,read_counts_table_lncrna_class[class=="Intronske lncRNA"]$FPKM,read_counts_table_lncrna_class[class=="Preklapajuce lncRNA"]$FPKM),g=c(rep(1,length(read_counts_table_lncrna_class[class=="Intergenske lncRNA"]$FPKM)),rep(2,length(read_counts_table_lncrna_class[class=="Intronske lncRNA"]$FPKM)),rep(3,length(read_counts_table_lncrna_class[class=="Preklapajuce lncRNA"]$FPKM))))
+kruskal.test(FPKM~class,data = read_counts_table_lncrna_class)
 
 
 #expression and transposons
@@ -2309,7 +1956,7 @@ lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep<-rbind(lncrn
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,repeat_class:=factor(repeat_class,levels = c("Unknown","DNA","LINE","LTR","RC","No_transposons"))]
 
 
-
+lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=log(FPKM+1e-10)]
 #lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,element:=factor(element,levels = levels_for_plot)]
 
 options(scipen=1000)
@@ -2328,14 +1975,57 @@ fpkm_lncrna_repeats_plot<-ggplot(data=lncrna_repeat_overlap_category_class_merge
 
 fpkm_lncrna_repeats_plot
 ggsave(fpkm_lncrna_repeats_plot,file="fpkm_lncrna_repeats_plot.png",width = 6,height = 5)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=log10(FPKM)]
+
+
+
+
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,cate:=paste(element,repeat_class,sep=" ")]
-anova_rep<-aov(log_FPKM~cate, lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
-TukeyHSD(anova_rep)
+anova_log_fpkm_trans<-aov(log_FPKM~cate,data=lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[is.infinite(log_FPKM)==F])
+
+TukeyHSD(anova_log_fpkm_trans)
+
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="five_prime Unknown"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="exon Unknown"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="intron Unknown"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+wilcox.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="intron Unknown"]$FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$FPKM)
+
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="five_prime DNA"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="exon DNA"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="intron DNA"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="five_prime LINE"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="exon LINE"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="intron LINE"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="five_prime LTR"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="exon LTR"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+t.test(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="intron LTR"]$log_FPKM,lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[cate=="NA No_transposons"]$log_FPKM)
+
+
+
+
+
+
+
+
 #numbersplot
 
 
 levels_for_plot<-c("five_prime","exon","intron",NA)
+
+
+
 lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,element:=factor(element,levels = levels_for_plot)]
 
 fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep,aes(x=repeat_class,fill=element)) +
@@ -2344,10 +2034,10 @@ fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_me
   theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
   theme(legend.position = "top") +
   scale_fill_got(discrete = T,option = "martell",na.value="grey",labels=c("5' regija","egzon","intron","Bez transpozona"), name="Element",direction = -1) +
-  xlab("Razred transpozona") +
-  ylab("Broj lncRNA-kodirajućih gena") +
+  xlab("Transposone class") +
+  ylab("Number of lncRNA-a genes") +
   theme(legend.title = element_text(size=9,face="bold")) +
-  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","Bez transpozona")) +
+  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","No transposones")) +
   theme(axis.title.x = element_blank()) +
   theme(axis.text.x  = element_blank())
 
@@ -2355,13 +2045,12 @@ fpkm_lncrna_repeats_barplot<-ggplot(data=lncrna_repeat_overlap_category_class_me
 fpkm_lncrna_repeats_barplot
 ggsave(fpkm_lncrna_repeats_barplot,file="fpkm_lncrna_repeats_barplot.png",width=5,height = 4)
 
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp<-copy(lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep)
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,cate:=paste(repeat_class,element,sep="_")]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[,FPKM:=log10(FPKM)]
-lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp[is.na(element),element:="no"]
 
-anova_fpkm<-aov(FPKM~cate,data = lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep_cp)
-TukeyHSD(anova_fpkm)
+
+
+
+
+
 #overlapping proteisn vs non-overlapping proteins
 
 
@@ -2378,7 +2067,7 @@ fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_cl
   theme(legend.title = element_text(size=9,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Kategorija",labels=c("Proteini s\nintronskom lncRNA","Proteini s intergenskom\nlncRNA bližom od 1 kb","Proteini u\npreklapajućoj lncRNA","Ostal\nproteini")) +
+  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Category",labels=c("Proteins with\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
   theme(legend.text = element_text(size=9)) 
 
 fpkm_prot_plot
@@ -2390,52 +2079,29 @@ TukeyHSD(anova_class_prot)
 
 ```
 
-```{r}
-#prot-prot linkage
-
-protein_coding_annotation<-protein_coding_annotation[,1:10]
-protein_coding_annotation[feature=="gene",numb_prot_scaff:=nrow(.SD),by=seqname]
-one_prot_scaff<-protein_coding_annotation[numb_prot_scaff==1,seqname]
-
-protein_coding_annotation_more_scaff<-protein_coding_annotation[seqname%in%one_prot_scaff==F]
-
-prot_gr<-makeGRangesFromDataFrame(df = protein_coding_annotation_more_scaff[feature=="gene"],ignore.strand = T,keep.extra.columns = T)
-
-prot_prot_nearest_dt<-data.table(first_prot_pair_seqname=as.character(seqnames(prot_gr)),first_prot_pair_start=as.double(start(prot_gr)),first_prot_pair_end=as.double(end(prot_gr)),first_prot_pair_attribute=prot_gr$attribute,second_prot_pair_seqname=as.character(seqnames(prot_gr[nearest(prot_gr)])),second_prot_pair_start=as.double(start(prot_gr[nearest(prot_gr)])),second_prot_pair_end=as.double(end(prot_gr[nearest(prot_gr)])),second_prot_pair_attribute=prot_gr[nearest(prot_gr)]$attribute)
-
-prot_prot_nearest_dt[,distance:=ifelse(first_prot_pair_start>second_prot_pair_start,first_prot_pair_start-second_prot_pair_end-1,first_prot_pair_end-second_prot_pair_start+1)]
-prot_gr$attribute_second<-prot_gr[nearest(prot_gr)]$attribute
-first_prot_rna_ovl<-findOverlaps(rnaseq_gr,prot_gr)
-first_prot_rna_ovl_dt<-cbind(as.data.table(rnaseq_gr[queryHits(first_prot_rna_ovl)]),as.data.table(prot_gr[subjectHits(first_prot_rna_ovl)]))
-setnames(first_prot_rna_ovl_dt,c("seqnames_rna","start_rna","end_rna","width_rna","strand_rna","seqnames_first","start_first","end_first","width_first","strand_first","source","feature","score","strand_ignore","frame","attribute_first","numb_prot_scaff","attribute_second"))
-
-prot_gr$attribute_second<-NULL
-second_prot_rna_ovl<-findOverlaps(rnaseq_gr,prot_gr[nearest(prot_gr)])
-second_prot_rna_ovl_dt<-cbind(as.data.table(rnaseq_gr[queryHits(second_prot_rna_ovl)]),as.data.table(prot_gr[nearest(prot_gr)][subjectHits(second_prot_rna_ovl)]))
-setnames(second_prot_rna_ovl_dt,c("seqnames_rna","start_rna","end_rna","width_rna","strand_rna","seqnames_second","start_second","end_second","width_second","strand_second","source","feature","score","strand_ignore","frame","attribute_second",""))
-
-
-prot_prot_pairs_dt<-merge(first_prot_rna_ovl_dt,second_prot_rna_ovl_dt,by=c("seqnames_rna","start_rna","end_rna","attribute_second"))
-
-```
-
 
 
 ```{r}
 #esu emu homology
-
-only_max_sumperceln_width_filtered_all_width<-only_max_sumperceln_width_filtered_all_width[species=="Ephydatia_mulleri_transcriptome"]
-
-em_transcripts_table<-data.table(transcript=only_max_sumperceln_width_filtered_all_width$sseqid)
-em_transcripts_table[,transcript:=str_remove(transcript,"Ephydatia_mulleri_transcriptome_")]
+getwd()
+blast_gr_q_split_reduce_unlist_dt_lengths_ephy<-blast_gr_q_split_reduce_unlist_dt_lengths[species=="Ephydatia_mulleri_transcriptome"]
 
 
 
+blast_gr_q_split_reduce_unlist_dt_lengths_ephy[,lncrna_emu:=str_remove(sseqid,"Ephydatia_mulleri_transcriptome_")]
 
 
+lncrnas_final_reduced_together_dt_emu_rnaspades<-fread("rnaspades_lncrna_more_than_one_exon_percmatches_90_no_prot_cod.txt",header = F)
+lncrnas_final_reduced_together_dt_emu_trinity<-fread("trinity_lncrna_more_than_one_exon_percmatches_90_no_prot_cod.txt",header=F)
 
 
+lncrnas_final_reduced_together_dt_emu<-rbind(lncrnas_final_reduced_together_dt_emu_rnaspades,lncrnas_final_reduced_together_dt_emu_trinity)
+lncrnas_final_reduced_together_dt_emu<-lncrnas_final_reduced_together_dt_emu[,1]
+setnames(lncrnas_final_reduced_together_dt_emu,"emu_lncrna")
 
+blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq<-unique(blast_gr_q_split_reduce_unlist_dt_lengths_ephy,by="lncrna_emu")
+
+blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq[lncrna_emu%in%lncrnas_final_reduced_together_dt_emu$emu_lncrna]
 
 ```
 
@@ -2446,7 +2112,7 @@ em_transcripts_table[,transcript:=str_remove(transcript,"Ephydatia_mulleri_trans
 ```{r}
 #1 MB
 
-
+  
 lncrnas_final_reduced_together_20kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>25000]
 lncrnas_final_reduced_together_20kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=25000]
 end(lncrnas_final_reduced_together_20kb_short)<-(start(lncrnas_final_reduced_together_20kb_short)-1)
@@ -2496,62 +2162,7 @@ prot_overlaps_20kb<-findOverlaps(protein_coding_genes_granges,lncrnas_final_redu
 prot_overlaps_20kb_dt<-cbind(as.data.table(protein_coding_genes_granges[queryHits(prot_overlaps_20kb)]),as.data.table(lncrnas_final_reduced_together_20kb_dt_merged2_gr[subjectHits(prot_overlaps_20kb)]))
 setnames(prot_overlaps_20kb_dt,c("seqnames1","start1","end1","width1","strand1","source","feature","score","strand_ignore","frame","attribute","seqnames2","start2","end2","width2","strand2","gene_id","gene","end_short","end_norm"))
 
-#1 MB obrnuto
 
-
-
-proteins_final_reduced_together_20kb<-protein_coding_genes_granges[start(protein_coding_genes_granges)>25000]
-proteins_final_reduced_together_20kb_short<-protein_coding_genes_granges[start(protein_coding_genes_granges)<=25000]
-end(proteins_final_reduced_together_20kb_short)<-start(proteins_final_reduced_together_20kb_short)-1
-start(proteins_final_reduced_together_20kb_short)<-(rep(1,length(proteins_final_reduced_together_20kb_short)))
-new_starts<-start(proteins_final_reduced_together_20kb)-25000
-start(proteins_final_reduced_together_20kb)<-new_starts
-proteins_final_reduced_together_20kb_final<-c(proteins_final_reduced_together_20kb,proteins_final_reduced_together_20kb_short)
-proteins_final_reduced_together_20kb_final<-proteins_final_reduced_together_20kb_final[proteins_final_reduced_together_20kb_final$attribute!="jg27231"]
-
-
-
-contig_length_table<-data.table(seqnames1=names(esu_genome),cont_length=sapply(esu_genome,length))
-
-setnames(contig_length_table,c("seqname","cont_length"))
-protein_coding_genes_merge<-plyr::join(protein_coding_genes,contig_length_table,by="seqname")
-
-
-proteins_final_reduced_together_20kb_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)<(protein_coding_genes_merge$cont_length-25000)]
-proteins_final_reduced_together_20kb_short_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)>(protein_coding_genes_merge$cont_length-25000)]
-
-proteins_final_reduced_together_20kb_short_right_dt<-as.data.table(proteins_final_reduced_together_20kb_short_right)
-colnames(proteins_final_reduced_together_20kb_short_right_dt)[1]<-"seqname"
-proteins_final_reduced_together_20kb_short_right_dt_merge<-plyr::join(proteins_final_reduced_together_20kb_short_right_dt,contig_length_table,by="seqname")
-
-end(proteins_final_reduced_together_20kb_short_right)<-proteins_final_reduced_together_20kb_short_right_dt_merge$cont_length
-
-end(proteins_final_reduced_together_20kb_right)<-end(proteins_final_reduced_together_20kb_right)+25000
-
-
-proteins_final_reduced_together_20kb_final_dt<-as.data.table(proteins_final_reduced_together_20kb_final)
-
-proteins_final_reduced_together_20kb_short_right_dt<-as.data.table(proteins_final_reduced_together_20kb_short_right)
-colnames(proteins_final_reduced_together_20kb_short_right_dt)[3]<-"end_short"
-
-proteins_final_reduced_together_20kb_right_dt<-as.data.table(proteins_final_reduced_together_20kb_right)
-colnames(proteins_final_reduced_together_20kb_right_dt)[3]<-"end_norm"
-
-proteins_final_reduced_together_20kb_dt_merged<-merge(proteins_final_reduced_together_20kb_final_dt,proteins_final_reduced_together_20kb_short_right_dt[,c(3,11)],by="attribute",all.x=T)
-
-proteins_final_reduced_together_20kb_dt_merged2<-merge(proteins_final_reduced_together_20kb_dt_merged,proteins_final_reduced_together_20kb_right_dt[,c(3,11)],by="attribute",all.x=T)
-
-proteins_final_reduced_together_20kb_dt_merged2[is.na(end_short),end:=end_norm]
-proteins_final_reduced_together_20kb_dt_merged2[is.na(end_norm),end:=end_short]
-
-proteins_final_reduced_together_20kb_dt_merged2_gr<-makeGRangesFromDataFrame(proteins_final_reduced_together_20kb_dt_merged2,keep.extra.columns = T)
-
-
-
-
-prot_overlaps_20kb_2<-findOverlaps(lncrnas_final_reduced_together,proteins_final_reduced_together_20kb_dt_merged2_gr)
-prot_overlaps_20kb_2_dt<-cbind(as.data.table(lncrnas_final_reduced_together[queryHits(prot_overlaps_20kb_2)]),as.data.table(proteins_final_reduced_together_20kb_dt_merged2_gr[subjectHits(prot_overlaps_20kb_2)]))
-setnames(prot_overlaps_20kb_2_dt,c("seqnames1","start1","end1","width1","strand1","gene","gene_id","seqnames2","start2","end2","width2","strand2","attribute","source","feature","score","strand_ignore","frame","end_short","end_norm"))
 ```
 
 
@@ -2563,7 +2174,7 @@ colnames(go_all_esu)[3]<-"attribute"
 colnames(go_all_esu)[11]<-"go_names"
 
 go_all_esu_nonempty<-go_all_esu[grepl(".+",go_names)]
-go_all_esu_nonempty<-go_all_esu [grepl("C:",go_names)==F]
+go_all_esu_nonempty<-go_all_esu_nonempty [grepl("C:",go_names)==F]
 
 
 go_all_esu_nonempty[grepl("protein binding",go_names) & grepl("nucleic acid binding",go_names),go_names:=paste(go_names,"protein and nucleic acid binding",sep=" ;F:")]
@@ -2580,7 +2191,7 @@ max_split<-max(str_count(prot_overlaps_20kb_dt_GO$go_names,";"))+1
 prot_overlaps_20kb_dt_GO[,paste("GO_split",1:max_split,sep="_"):=tstrsplit(go_names, ";")]
 
 prot_overlaps_20kb_dt_GO_longer<-as.data.table(pivot_longer(prot_overlaps_20kb_dt_GO,cols = grep("GO_split",colnames(prot_overlaps_20kb_dt_GO),value = T),values_to = "GO_term"))
-prot_overlaps_20kb_dt_GO_longer<-prot_overlaps_20kb_dt_GO_longer[grepl("^ ",GO_term)==F]
+prot_overlaps_20kb_dt_GO_longer[,GO_term:=str_replace(GO_term,"^ ","")]
 prot_overlaps_20kb_dt_GO_longer<-prot_overlaps_20kb_dt_GO_longer[is.na(GO_term)==F]
 
 
@@ -2608,7 +2219,7 @@ prot_overlaps_20kb_dt_GO_longer_f_N[,GO_term:=factor(GO_term,levels = prot_overl
 
 ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_N,aes(x=GO_term,y=N,fill=GO_term)) +
   geom_bar(stat="identity",color="black",alpha=0.9) +
-  theme_bw() +
+   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
   scale_fill_brewer(palette="Spectral")
@@ -2628,159 +2239,36 @@ ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_N,aes(x=GO_term,y=N,fill=GO_term))
 
 
 
-prot_overlaps_20kb_dt_GO_rev<-merge(prot_overlaps_20kb_2_dt,go_all_esu_nonempty[,c(3,11)],by="attribute")
 
-max_split_rev<-max(str_count(prot_overlaps_20kb_dt_GO_rev$go_names,";"))+1
-prot_overlaps_20kb_dt_GO_rev[,paste("GO_split",1:max_split,sep="_"):=tstrsplit(go_names, ";")]
-
-prot_overlaps_20kb_dt_GO_longer_rev<-as.data.table(pivot_longer(prot_overlaps_20kb_dt_GO_rev,cols = grep("GO_split",colnames(prot_overlaps_20kb_dt_GO),value = T),values_to = "GO_term"))
-prot_overlaps_20kb_dt_GO_longer_rev<-prot_overlaps_20kb_dt_GO_longer_rev[grepl("^ ",GO_term)==F]
-prot_overlaps_20kb_dt_GO_longer_rev<-prot_overlaps_20kb_dt_GO_longer_rev[is.na(GO_term)==F]
-
-
-prot_overlaps_20kb_dt_GO_longer_rev[grepl("P:",GO_term),GO_category:="P"]
-prot_overlaps_20kb_dt_GO_longer_rev[grepl("F:",GO_term),GO_category:="F"]
-
-
-
-prot_overlaps_20kb_dt_GO_longer_rev_f<-prot_overlaps_20kb_dt_GO_longer_rev[GO_category=="F"]
-prot_overlaps_20kb_dt_GO_longer_rev_f[,GO_term:=str_remove(GO_term,"F:")]
-prot_overlaps_20kb_dt_GO_longer_rev_f_N<-prot_overlaps_20kb_dt_GO_longer_rev_f[,.N,by=c("gene_id","GO_term")][order(-N)]
-prot_overlaps_20kb_dt_GO_longer_rev_f_N_all<-prot_overlaps_20kb_dt_GO_longer_rev_f_N[,.N,by=GO_term][order(-N)]
-
-
-prot_overlaps_20kb_dt_GO_longer_rev_f_N_all[,GO_term:=factor(GO_term,levels=prot_overlaps_20kb_dt_GO_longer_rev_f_N_all[1:10]$GO_term)]
-
-ggplot(prot_overlaps_20kb_dt_GO_longer_rev_f_N_all[1:10],aes(x=GO_term,y=N,fill=GO_term)) +
-  geom_bar(stat="identity",color="black",alpha=0.9) +
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Spectral")
-  
-
-
-
-
-prot_overlaps_20kb_dt_GO_longer_rev_p<-prot_overlaps_20kb_dt_GO_longer_rev[GO_category=="P"]
-prot_overlaps_20kb_dt_GO_longer_rev_p[,GO_term:=str_remove(GO_term,"P:")]
-prot_overlaps_20kb_dt_GO_longer_rev_p_N<-prot_overlaps_20kb_dt_GO_longer_rev_p[,.N,by=c("gene_id","GO_term")][order(-N)]
-prot_overlaps_20kb_dt_GO_longer_rev_p_N_all<-prot_overlaps_20kb_dt_GO_longer_rev_p_N[,.N,by=GO_term][order(-N)]
-
-prot_overlaps_20kb_dt_GO_longer_rev_p_N_all[,GO_term:=factor(GO_term,levels=prot_overlaps_20kb_dt_GO_longer_rev_p_N_all[1:10]$GO_term)]
-
-lncrna_go_kb_plot<-ggplot(prot_overlaps_20kb_dt_GO_longer_rev_p_N_all[1:10],aes(x=GO_term,y=N,fill=GO_term)) +
-  geom_bar(stat="identity",color="black",alpha=0.9) +
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
-  scale_fill_brewer(palette="Spectral") +
-  xlab("GO term") +
-  ylab("Number of lncRNAs within 50 kb of a protein")
-  
-lncrna_go_kb_plot
-
-#trazi
-
-ggsave(lncrna_go_kb_plot,filename = "lncrna_go_kb_plot.png",width=6,height = 5)
-
-
-
-
-
-#GO distances - whole gene - closest
-
-dist_table_whole<-rbind(intergenic_prot_nearest_table[,.SD,.SDcols=c("gene_id","attribute","distance")],intronic_prots_dt[,.SD,.SDcols=c("gene_id","attribute","distance")],overlapping_prots_dt[,.SD,.SDcols=c("gene_id","attribute","distance")])
-
-dist_table_whole_go_f<-merge(dist_table_whole,prot_overlaps_20kb_dt_GO_longer_f[,.SD,.SDcols=c("attribute","GO_term","GO_category")])
-
-dist_table_whole_go_p<-merge(dist_table_whole,prot_overlaps_20kb_dt_GO_longer_p[,.SD,.SDcols=c("attribute","GO_term","GO_category")])
-
-
-
-
-dist_table_whole_go_f<-dist_table_whole_go_f[GO_term%in%top_go_f]
-
-dist_table_whole_go_p<-dist_table_whole_go_p[GO_term%in%top_go_p]
-
-
-
-
-ggplot(data=dist_table_whole_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-ggplot(data=dist_table_whole_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-
-
-
-dist_table_whole_go_f<-dist_table_whole_go_f[GO_term%in%top_go_f]
-dist_table_whole_go_f[,distance:=abs(distance)]
-dist_table_whole_go_f[,log_distance:=log(distance+1)]
-
-dist_table_whole_go_p<-dist_table_whole_go_p[GO_term%in%top_go_p]
-dist_table_whole_go_p[,distance:=abs(distance)]
-dist_table_whole_go_p[,log_distance:=log(distance+1)]
-
-dist_table_whole_go_f[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_f_N$GO_term)]
-dist_table_whole_go_p[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_p_N$GO_term)]
-
-ggplot(data=dist_table_whole_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-ggplot(data=dist_table_whole_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-
-ggplot(data=dist_table_whole_go_f,aes(x=GO_term,y=log_distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-ggplot(data=dist_table_whole_go_p,aes(x=GO_term,y=log_distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
 
 
 #GO distances - whole gene - KB
 
-prot_overlaps_20kb_dt
+
 
 prot_coding_genes_kb_gr<-makeGRangesFromDataFrame(data.table(seqnames=prot_overlaps_20kb_dt$seqnames2,start=prot_overlaps_20kb_dt$start2,end=prot_overlaps_20kb_dt$end2,attribute=prot_overlaps_20kb_dt$attribute,strand=prot_overlaps_20kb_dt$strand2),keep.extra.columns = T)
 
-
-prot_overlaps_20kb_dt_lncrna_merge<-merge(prot_overlaps_20kb_dt,lncrnas_final_reduced_together_dt,by="gene_id")
-
 lncrna_genes_kb_gr<-makeGRangesFromDataFrame(data.table(seqnames=prot_overlaps_20kb_dt_lncrna_merge$seqnames1.y,start=prot_overlaps_20kb_dt_lncrna_merge$start1.y,end=prot_overlaps_20kb_dt_lncrna_merge$end1.y,gene_id=prot_overlaps_20kb_dt_lncrna_merge$gene_id,strand=prot_overlaps_20kb_dt_lncrna_merge$strand1.y),keep.extra.columns = T)
 
-prot_overlaps_20kb_dt_lncrna_merge[,distance:=ifelse(start1.y>start1.x,start1.y-end1.x-1,end1.y-start1.x+1)]
 
 
-dist_table_all_go_f<-merge(prot_overlaps_20kb_dt_lncrna_merge,prot_overlaps_20kb_dt_GO_longer_f[,.SD,.SDcols=c("attribute","GO_term","GO_category")],by="attribute")
-
-dist_table_all_go_p<-merge(prot_overlaps_20kb_dt_lncrna_merge,prot_overlaps_20kb_dt_GO_longer_p[,.SD,.SDcols=c("attribute","GO_term","GO_category")],by="attribute")
+prot_overlaps_20kb_dt_lncrna_merge_f<-merge(prot_overlaps_20kb_dt_GO_longer_f,lncrnas_final_reduced_together_dt,by="gene_id")
 
 
+prot_overlaps_20kb_dt_lncrna_merge_f[,distance:=ifelse(start1.y>start1.x,start1.y-end1.x-1,end1.y-start1.x+1)]
 
-dist_table_all_go_f<-dist_table_all_go_f[GO_term%in%top_go_f]
 
-dist_table_all_go_p<-dist_table_all_go_p[GO_term%in%top_go_p]
+prot_overlaps_20kb_dt_lncrna_merge_p<-merge(prot_overlaps_20kb_dt_GO_longer_p,lncrnas_final_reduced_together_dt,by="gene_id")
+
+
+prot_overlaps_20kb_dt_lncrna_merge_p[,distance:=ifelse(start1.y>start1.x,start1.y-end1.x-1,end1.y-start1.x+1)]
+
+
+
+
+dist_table_all_go_f<-prot_overlaps_20kb_dt_lncrna_merge_f[GO_term%in%top_go_f]
+
+dist_table_all_go_p<-prot_overlaps_20kb_dt_lncrna_merge_p[GO_term%in%top_go_p]
 
 
 dist_table_all_go_f[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_f_N$GO_term)]
@@ -2798,7 +2286,7 @@ ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot()+
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
 
 
 
@@ -2815,26 +2303,13 @@ ggplot(data=dist_table_all_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot()+
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
 
 ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot()+
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-
-ggplot(data=dist_table_all_go_f,aes(x=GO_term,y=log_distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=log_distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
 
 
 ```
@@ -2843,23 +2318,22 @@ ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=log_distance,fill=GO_term)) +
 #TSS
 protein_coding_genes[,trans_start:=ifelse(strand_ignore=="+",start,end)]
 
-intergenic_prot_nearest_table_merge_trans<-merge(intergenic_prot_nearest_table,protein_coding_genes[,.SD,.SDcols=c("attribute","trans_start")],by="attribute")
-intronic_prots_dt_merge_trans<-merge(intronic_prots_dt,protein_coding_genes[,.SD,.SDcols=c("attribute","trans_start")],by="attribute")
-overlapping_prots_dt_merge_trans<-merge(overlapping_prots_dt,protein_coding_genes[,.SD,.SDcols=c("attribute","trans_start")],by="attribute")
 
-dist_table_whole_trans<-rbind(intergenic_prot_nearest_table_merge_trans[,.SD,.SDcols=c("gene_id","attribute","trans_start","start1","end1")],intronic_prots_dt_merge_trans[,.SD,.SDcols=c("gene_id","attribute","trans_start","start1","end1")],intronic_prots_dt_merge_trans[,.SD,.SDcols=c("gene_id","attribute","trans_start","start1","end1")])
+dist_table_whole_trans_f<-merge(dist_table_all_go_f,protein_coding_genes[,.SD,.SDcols=c("attribute","trans_start")],by="attribute")
 
-dist_table_whole_trans[,start_dis:=abs(start1-trans_start)]
-dist_table_whole_trans[,end_dis:=abs(end1-trans_start)]
-dist_table_whole_trans[,distance:=ifelse(start_dis<end_dis,start_dis,end_dis)]
+dist_table_whole_trans_p<-merge(dist_table_all_go_p,protein_coding_genes[,.SD,.SDcols=c("attribute","trans_start")],by="attribute")
 
-dist_table_whole_trans[,start_dis2:=start1-trans_start]
-dist_table_whole_trans[,end_dis2:=end1-trans_start]
-dist_table_whole_trans[,distance2:=ifelse(start_dis<end_dis,start_dis2,end_dis2)]
 
-dist_table_whole_go_trans_f<-merge(dist_table_whole_trans,prot_overlaps_20kb_dt_GO_longer_f[,.SD,.SDcols=c("attribute","GO_term","GO_category")])
 
-dist_table_whole_go_trans_p<-merge(dist_table_whole_trans,prot_overlaps_20kb_dt_GO_longer_p[,.SD,.SDcols=c("attribute","GO_term","GO_category")])
+dist_table_whole_trans_f[,start_dis:=abs(start2-trans_start)]
+dist_table_whole_trans_f[,end_dis:=abs(end2-trans_start)]
+dist_table_whole_trans_f[,distance:=ifelse(start_dis<end_dis,start_dis,end_dis)]
+
+dist_table_whole_trans_p[,start_dis:=abs(start2-trans_start)]
+dist_table_whole_trans_p[,end_dis:=abs(end2-trans_start)]
+dist_table_whole_trans_p[,distance:=ifelse(start_dis<end_dis,start_dis,end_dis)]
+
+
 
 
 
@@ -2876,20 +2350,18 @@ ggplot(data=dist_table_whole_go_trans_f,aes(x=GO_term,y=distance,fill=GO_term)) 
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette = "Spectral") +
-  scale_y_log10()
+  scale_fill_brewer(palette = "Spectral")
 
 ggplot(data=dist_table_whole_go_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette = "Spectral") +
-  scale_y_log10()
+  scale_fill_brewer(palette = "Spectral") 
 
 
 
-
+prot_overlaps_20kb_dt_GO_longer_f
 
 
 
