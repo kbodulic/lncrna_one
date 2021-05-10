@@ -2374,11 +2374,9 @@ prot_overlaps_20kb_dt_GO_longer_f
 
 blocks_table<-fread("Repo_spec.txt.dagchainer.aligncoords_prot.spans",header = F)
 setnames(blocks_table,c("Emu_scaffold","Emu_span_range","Emu_span_length","Esu_scaffold","Esu_span_range","Esu_span_length","span_strand","V8","V9"))
-blocks_table[,Emu_scaffold:=str_remove_all(Emu_scaffold,"Emu")]
-blocks_table[,Emu_scaffold:=str_remove(Emu_scaffold,";")]
+blocks_table[,Emu_scaffold:=str_remove(Emu_scaffold,"Emu;Emu")]
 blocks_table[,Emu_scaffold:=str_replace(Emu_scaffold,"scaffold(\\d*)","scaffold_\\1")]
-blocks_table[,Esu_scaffold:=str_remove_all(Esu_scaffold,"Esu")]
-blocks_table[,Esu_scaffold:=str_remove(Esu_scaffold,";")]
+blocks_table[,Esu_scaffold:=str_remove(Esu_scaffold,"Esu;Esu")]
 blocks_table[,Esu_scaffold:=str_remove(Esu_scaffold,"pilon")]
 blocks_table[,Esu_scaffold:=str_replace(Esu_scaffold,"contig(\\d*)","contig_\\1")]
 blocks_table[,Esu_scaffold:=paste(Esu_scaffold,"pilon",sep = "_")]
@@ -2418,10 +2416,12 @@ setnames(blocks_table_esu_gr_split_red_un_dt,c("Esu_scaffold","Esu_start","Esu_e
 
 blocks_table_emu_merged<-merge(blocks_table_emu,blocks_table_emu_gr_split_red_un_dt,by="Esu_ID",allow.cartesian=TRUE)
 blocks_table_emu_merged[,Emu_span_range_1:=paste(Emu_start,Emu_end,sep="-")]
-blocks_table_emu_merged[,Emu_ID:=paste(Emu_scaffold,Emu_span_range_1,sep="_")]
+blocks_table_emu_merged[,Emu_ID:=paste(Emu_scaffold,Emu_start,sep="_")]
+blocks_table_emu_merged[,Emu_ID:=paste(Emu_ID,Emu_end,sep="-")]
+blocks_table_emu_merged[,Emu_ID_two:=paste(Emu_scaffold,Emu_span_range_1,sep="_")]
 
 blocks_table_emu_esu_merged<-merge(blocks_table_emu_merged,blocks_table_esu_gr_split_red_un_dt[,c(1:3,6)],by="Emu_ID",allow.cartesian=TRUE)
-
+blocks_table_emu_merged[,Emu_ID:=Emu_ID_two]
 blocks_table_emu_esu_final<-unique(blocks_table_emu_esu_merged,by=c("Emu_scaffold_2","Emu_start_2","Emu_end_2","Esu_scaffold","Esu_start","Esu_end"))[,.SD,.SDcols=c("Emu_scaffold_2","Emu_start_2","Emu_end_2","Esu_scaffold","Esu_start","Esu_end")]
 
 blocks_table_emu_esu_final[,Emu_ID:=paste(Emu_scaffold_2,Emu_start_2,Emu_end_2,sep="_")]
@@ -2439,14 +2439,14 @@ Emu_block_final_gr<-makeGRangesFromDataFrame(df=Emu_block_final_dt,seqnames.fiel
 
 Esu_block_final_gr<-makeGRangesFromDataFrame(df=Esu_block_final_dt,seqnames.field = "Esu_scaffold",start.field = "Esu_start",end.field = "Esu_end",ignore.strand = T,keep.extra.columns = T)
 
-emu_prot_genes<-fread("emu_prot_genes.txt",header = F)
+emu_prot_genes<-fread("emu_prot_genes.txt",header = F) 
 setnames(emu_prot_genes,c("seqname","source","feature","start","end","score","strand","V8","attribute","width","gene"))
 emu_prot_genes<-emu_prot_genes[,.SD,.SDcols=c("seqname","start","end","attribute")]
 emu_prot_genes<-makeGRangesFromDataFrame(emu_prot_genes,ignore.strand = T,keep.extra.columns = T)
 
 
-emu_class_table<-fread("emu_class_table.txt",header = F)
-setnames(emu_class_table,c("transcript","class","gene_id"))
+#emu_class_table<-fread("emu_class_table.txt",header = F)
+#setnames(emu_class_table,c("transcript","class","gene_id"))
 
 
 
@@ -2494,7 +2494,6 @@ lncrnas_final_reduced_together_dt_emu<-fread("lncrnas_final_reduced_together_dt_
 lncrnas_final_reduced_together_gr_emu<-makeGRangesFromDataFrame(lncrnas_final_reduced_together_dt_emu,seqnames.field = "seqnames1",start.field = "start1",end.field = "end1",ignore.strand = T,keep.extra.columns = T)
 
 
-synteny_table_merged_prot
 synteny_table_merged_prot[,Emu_start:=Emu_start+100]
 synteny_table_merged_prot[,Emu_end:=Emu_end+100]
 synteny_table_merged_prot[,Esu_start:=Esu_start+100]
@@ -2516,11 +2515,6 @@ synteny_table_merged_prot_emu_gr_lncrna_ovl<-findOverlaps(lncrnas_final_reduced_
 synteny_table_merged_prot_emu_gr_lncrna_ovl_dt<-cbind(as.data.table(lncrnas_final_reduced_together_gr_emu[queryHits(synteny_table_merged_prot_emu_gr_lncrna_ovl)]),as.data.table(synteny_table_merged_prot_emu_gr[subjectHits(synteny_table_merged_prot_emu_gr_lncrna_ovl)]))
 setnames(synteny_table_merged_prot_emu_gr_lncrna_ovl_dt,c("seqnames1","start1","end1","width1","strand1","width_ignore","strand_ignore","gene","gene_id","seqnames2","start2","end2","width2","strand2","Emu_prots","block"))
 block_lncrna_merge<-merge(synteny_table_merged_prot_esu_gr_lncrna_ovl_dt,synteny_table_merged_prot_emu_gr_lncrna_ovl_dt,by="block",allow.cartesian=T)
-
-
-
-
-
 
 ```
 
