@@ -2246,9 +2246,7 @@ ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_N,aes(x=GO_term,y=N,fill=GO_term))
 
 
 
-prot_coding_genes_kb_gr<-makeGRangesFromDataFrame(data.table(seqnames=prot_overlaps_20kb_dt$seqnames2,start=prot_overlaps_20kb_dt$start2,end=prot_overlaps_20kb_dt$end2,attribute=prot_overlaps_20kb_dt$attribute,strand=prot_overlaps_20kb_dt$strand2),keep.extra.columns = T)
 
-lncrna_genes_kb_gr<-makeGRangesFromDataFrame(data.table(seqnames=prot_overlaps_20kb_dt_lncrna_merge$seqnames1.y,start=prot_overlaps_20kb_dt_lncrna_merge$start1.y,end=prot_overlaps_20kb_dt_lncrna_merge$end1.y,gene_id=prot_overlaps_20kb_dt_lncrna_merge$gene_id,strand=prot_overlaps_20kb_dt_lncrna_merge$strand1.y),keep.extra.columns = T)
 
 
 
@@ -2262,7 +2260,6 @@ prot_overlaps_20kb_dt_lncrna_merge_p<-merge(prot_overlaps_20kb_dt_GO_longer_p,ln
 
 
 prot_overlaps_20kb_dt_lncrna_merge_p[,distance:=ifelse(start1.y>start1.x,start1.y-end1.x-1,end1.y-start1.x+1)]
-
 
 
 
@@ -2291,11 +2288,11 @@ ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
 
 
 
-dist_table_all_go_f<-dist_table_whole_go_f[GO_term%in%top_go_f]
+
 dist_table_all_go_f[,distance:=abs(distance)]
 dist_table_all_go_f[,log_distance:=log(distance+1)]
 
-dist_table_all_go_p<-dist_table_whole_go_p[GO_term%in%top_go_p]
+
 dist_table_all_go_p[,distance:=abs(distance)]
 dist_table_all_go_p[,log_distance:=log(distance+1)]
 
@@ -2310,7 +2307,6 @@ ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
-
 
 ```
 
@@ -2337,22 +2333,22 @@ dist_table_whole_trans_p[,distance:=ifelse(start_dis<end_dis,start_dis,end_dis)]
 
 
 
-dist_table_whole_go_trans_f<-dist_table_whole_go_trans_f[GO_term%in%top_go_f]
+dist_table_whole_trans_f<-dist_table_whole_trans_f[GO_term%in%top_go_f]
 
-dist_table_whole_go_trans_p<-dist_table_whole_go_trans_p[GO_term%in%top_go_p]
+dist_table_whole_trans_p<-dist_table_whole_trans_p[GO_term%in%top_go_p]
 
-dist_table_whole_go_trans_f[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_f_N$GO_term)]
-dist_table_whole_go_trans_p[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_p_N$GO_term)]
+dist_table_whole_trans_f[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_f_N$GO_term)]
+dist_table_whole_trans_p[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_p_N$GO_term)]
 
 
-ggplot(data=dist_table_whole_go_trans_f,aes(x=GO_term,y=distance,fill=GO_term)) +
+ggplot(data=dist_table_whole_trans_f,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
   scale_fill_brewer(palette = "Spectral")
 
-ggplot(data=dist_table_whole_go_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
+ggplot(data=dist_table_whole_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "none") +
@@ -2360,8 +2356,6 @@ ggplot(data=dist_table_whole_go_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) 
   scale_fill_brewer(palette = "Spectral") 
 
 
-
-prot_overlaps_20kb_dt_GO_longer_f
 
 
 
@@ -2522,7 +2516,7 @@ block_lncrna_merge<-merge(synteny_table_merged_prot_esu_gr_lncrna_ovl_dt,synteny
 
 emu_genome<-readDNAStringSet("Emu_genome_v1.fa")
 
-setwd("C:/Users/krist/Desktop/1_script/33")
+setwd("F:/1_script")
 
 block_lncrna_merge[,lncrna_esu_all:=paste0(gene_id.x,collapse = " "),by="block"]
 block_lncrna_merge[,lncrna_emu_all:=paste0(gene_id.y,collapse = " "),by="block"]
@@ -2558,7 +2552,7 @@ esu_genes_track<-GeneRegionTrack(genes_sub,genome=Esu_genome_gr[contig_length_ta
 png(file=paste("Esu",numb,".png",sep=""),
 width=1024, height=600)
 
-plotTracks(list(esu_genome_track,esu_genes_track),shape="arrow",fill=c(rep("steelblue",nrow(prot_sub)),rep("indianred1",nrow(lncrna_sub_dt))),sizes = c(0.5,0.3),from=block_lncrna_merge[block==numb]$start2.x,to=block_lncrna_merge[block==numb]$end2.x,main = paste("Esu",numb,sep=" "),cex.main = 1,cex=2,fontsize.group=30)
+plotTracks(list(esu_genome_track,esu_genes_track),shape="arrow",fill=c(rep("steelblue",nrow(prot_sub)),rep("indianred1",nrow(lncrna_sub_dt))),sizes = c(0.5,0.3),from=block_lncrna_merge[block==numb]$start2.x-100,to=block_lncrna_merge[block==numb]$end2.x+100,main = paste("Esu",numb,sep=" "),cex.main = 1,cex=2,fontsize.group=30)
 
 dev.off()
 
@@ -2637,19 +2631,25 @@ prot_overlaps_20kb_dt_GO_longer_p_merged_N[,GO_term:=factor(GO_term,levels = top
 
 prot_overlaps_20kb_dt_GO_longer_f_merged_N[,cons_cat:=factor(cons_cat,levels=c("other","conserved","syntenic","syntenic and conserved"))]
 prot_overlaps_20kb_dt_GO_longer_p_merged_N[,cons_cat:=factor(cons_cat,levels=c("other","conserved","syntenic","syntenic and conserved"))]
+
+prot_overlaps_20kb_dt_GO_longer_f_merged_N[,cons_cat:=factor(cons_cat,levels=c("conserved","syntenic","syntenic and conserved","other"))]
+prot_overlaps_20kb_dt_GO_longer_p_merged_N[,cons_cat:=factor(cons_cat,levels=c("conserved","syntenic","syntenic and conserved","other"))]
+
+
+
 ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.9,position="dodge") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set3")
+  scale_fill_brewer(palette="Set2")
 
 ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.9,position="fill") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set3")
+  scale_fill_brewer(palette="Set2",direction = -1)
 
 
 ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
@@ -2657,51 +2657,66 @@ ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=co
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set3")
+  scale_fill_brewer(palette="Set2")
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
-  geom_bar(stat="identity",color="black",alpha=0.9,position="fill") +
+num_p<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
+  geom_bar(stat="identity",color="black",alpha=0.7,position="fill",width=0.7) +
   theme_bw() +
   theme(legend.position = "top") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set3")
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
+  scale_fill_brewer(palette="Spectral",name="lncRNA category") +
+  xlab("GO term") +
+  ylab("lncRNA category ratio")
+
+num_p
+
+ggsave(num_p,filename = "num_p.png",height = 6,width = 9)
 
 
 
+dist_table_whole_go_trans_f_merge<-merge(dist_table_whole_trans_f,synt_cons_lncrna_table,by="gene_id")
 
-dist_table_whole_go_trans_f_merge<-merge(dist_table_whole_go_trans_f,synt_cons_lncrna_table,by="gene_id")
-
-dist_table_whole_go_trans_p_merge<-merge(dist_table_whole_go_trans_p,synt_cons_lncrna_table,by="gene_id")
+dist_table_whole_go_trans_p_merge<-merge(dist_table_whole_trans_p,synt_cons_lncrna_table,by="gene_id")
 
 dist_table_whole_go_trans_f_merge[,GO_term:=factor(GO_term,levels = top_go_f)]
 
 dist_table_whole_go_trans_p_merge[,GO_term:=factor(GO_term,levels = top_go_p)]
 
-dist_table_whole_go_trans_f_merge[,cons_cat:=factor(cons_cat,levels=c("other","conserved","syntenic","syntenic and conserved"))]
-dist_table_whole_go_trans_p_merge[,cons_cat:=factor(cons_cat,levels=c("other","conserved","syntenic","syntenic and conserved"))]
+
+dist_table_whole_go_trans_f_merge[,cons_cat:=factor(cons_cat,levels=c("conserved","syntenic","syntenic and conserved","other"))]
+dist_table_whole_go_trans_p_merge[,cons_cat:=factor(cons_cat,levels=c("conserved","syntenic","syntenic and conserved","other"))]
+
+
 
 ggplot(data=dist_table_whole_go_trans_f_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette = "Set3") +
+  scale_fill_brewer(palette = "Set2") +
   scale_y_log10()
 
-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
-  geom_boxplot(alpha=0.9)+
+distance_p<-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
+  geom_boxplot(alpha=0.7)+
   theme_bw() +
   theme(legend.position = "top") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette = "Set3") +
-  scale_y_log10()
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
+  scale_fill_brewer(palette = "Spectral",name="lncRNA category") +
+  scale_y_log10() +
+  xlab("GO term") +  
+  ylab("Distance to TSS")
+
+distance_p
+
+ggsave(distance_p,filename = "distance_p.png",height = 6,width = 9)
+
 
 ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=cons_cat,y=distance,fill=cons_cat)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette = "Set3") +
+  scale_fill_brewer(palette = "Set2") +
   scale_y_log10()
 
 ```
