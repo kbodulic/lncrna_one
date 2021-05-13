@@ -1620,7 +1620,7 @@ repeats_plot_normalized_sum_bases_20<-ggplot(data=overlaps_repeat_together_num_t
   
 repeats_plot_normalized_sum_bases_20
 
-ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.jpg",width=7,height = 6)
+ggsave(repeats_plot_normalized_sum_bases_20,file="repeats_plot_normalized_sum_bases_20.png",width=7,height = 6)
 
 overlaps_repeat_lncrna_num_table_20_new<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
 overlaps_repeat_protein_num_table_20_new<-protein_repeat_overlap_category_20_prot_merged[,.(number_of_bases=sum(intersect)),by=c("class","category")]
@@ -1671,7 +1671,7 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   
 repeats_plot_normalized_sum_bases_20_2
 
-ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.jpg",width=7.6,height = 3.5)
+ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.png",width=7.6,height = 3.5)
 
 #Sponge BLASTn analysis
 
@@ -1703,7 +1703,7 @@ numb_gene_in_genomes_plot<-ggplot(data=numb_gene_in_genomes_table,aes(x=number_o
 
 numb_gene_in_genomes_plot
 
-ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.jpg")
+ggsave(numb_gene_in_genomes_plot,filename = "numb_gene_in_genomes_plot.png")
 
 blast_results_sponge_transcriptomes_eval_filt[sstart>send,':='(sstart=send,send=sstart)]
 blast_gr<-makeGRangesFromDataFrame(blast_results_sponge_transcriptomes_eval_filt,start.field = "qstart",end.field="qend",seqnames.field = "qseqid",ignore.strand=T,keep.extra.columns = T)
@@ -1762,7 +1762,7 @@ blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_pe
 blast_heatmap_plot
 
 
-ggsave(blast_heatmap_plot,file="blast_heatmap_plot.jpg",width = 7.6,height = 8)
+ggsave(blast_heatmap_plot,file="blast_heatmap_plot.png",width = 7.6,height = 8)
 
 
 #findig candidatess for multiple alignment
@@ -2113,11 +2113,11 @@ blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq[lncrna_emu%in%lncrnas_final_
 #1 MB
 
   
-lncrnas_final_reduced_together_20kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>25000]
-lncrnas_final_reduced_together_20kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=25000]
+lncrnas_final_reduced_together_20kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>10000]
+lncrnas_final_reduced_together_20kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=10000]
 end(lncrnas_final_reduced_together_20kb_short)<-(start(lncrnas_final_reduced_together_20kb_short)-1)
 start(lncrnas_final_reduced_together_20kb_short)<-(rep(1,length(lncrnas_final_reduced_together_20kb_short)))
-new_starts<-start(lncrnas_final_reduced_together_20kb)-25000
+new_starts<-start(lncrnas_final_reduced_together_20kb)-10000
 start(lncrnas_final_reduced_together_20kb)<-new_starts
 lncrnas_final_reduced_together_20kb_final<-c(lncrnas_final_reduced_together_20kb,lncrnas_final_reduced_together_20kb_short)
 
@@ -2129,8 +2129,8 @@ contig_length_table<-data.table(seqnames1=names(esu_genome),cont_length=sapply(e
 lncrnas_final_reduced_together_dt_cont_length_merge<-plyr::join(lncrnas_final_reduced_together_dt,contig_length_table,by="seqnames1")
 
 
-lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-25000)]
-lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-25000)]
+lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-10000)]
+lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-10000)]
 
 lncrnas_final_reduced_together_20kb_short_right_dt<-as.data.table(lncrnas_final_reduced_together_20kb_short_right)
 colnames(lncrnas_final_reduced_together_20kb_short_right_dt)[1]<-"seqnames1"
@@ -2138,7 +2138,7 @@ lncrnas_final_reduced_together_20kb_short_right_dt_merge<-plyr::join(lncrnas_fin
 
 end(lncrnas_final_reduced_together_20kb_short_right)<-lncrnas_final_reduced_together_20kb_short_right_dt_merge$cont_length
 
-end(lncrnas_final_reduced_together_20kb_right)<-end(lncrnas_final_reduced_together_20kb_right)+25000
+end(lncrnas_final_reduced_together_20kb_right)<-end(lncrnas_final_reduced_together_20kb_right)+10000
 
 
 lncrnas_final_reduced_together_20kb_dt<-as.data.table(lncrnas_final_reduced_together_20kb_final)
@@ -2217,26 +2217,38 @@ prot_overlaps_20kb_dt_GO_longer_f_N<-prot_overlaps_20kb_dt_GO_longer_f_N[GO_term
 prot_overlaps_20kb_dt_GO_longer_f_N[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_f_N$GO_term)]
 
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_N,aes(x=GO_term,y=N,fill=GO_term)) +
+num_f<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_N,aes(x=reorder(GO_term,N),y=N,fill=GO_term)) +
   geom_bar(stat="identity",color="black",alpha=0.9) +
    theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Spectral")
+  scale_fill_brewer(palette="Spectral") +
+  coord_flip() +
+  theme(axis.text.y = element_text(size=7)) +
+  ylab("Number of proteins") +
+  xlab("GO term")
+
+num_f
+
+ggsave(num_f,filename = "num_f.png",height = 4,width = 6)
 
 
 prot_overlaps_20kb_dt_GO_longer_p_N<-prot_overlaps_20kb_dt_GO_longer_p_N[GO_term%in%top_go_p]
 prot_overlaps_20kb_dt_GO_longer_p_N[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_p_N$GO_term)]
 
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_N,aes(x=GO_term,y=N,fill=GO_term)) +
+num_p<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_N,aes(x=reorder(GO_term,N),y=N,fill=GO_term)) +
   geom_bar(stat="identity",color="black",alpha=0.9) +
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Spectral")
+  scale_fill_brewer(palette="Spectral") +
+    coord_flip() +
+  theme(axis.text.y = element_text(size=7)) +
+  ylab("Number of proteins") +
+  xlab("GO term")
 
+num_p
 
+ggsave(num_p,filename = "num_p.png",height = 4,width = 6)
 
 
 
@@ -2273,17 +2285,6 @@ dist_table_all_go_p[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_l
 
 
 
-ggplot(data=dist_table_all_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9))
-
-ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
-  geom_boxplot()+
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
 
 
 
@@ -2296,18 +2297,35 @@ dist_table_all_go_f[,log_distance:=log(distance+1)]
 dist_table_all_go_p[,distance:=abs(distance)]
 dist_table_all_go_p[,log_distance:=log(distance+1)]
 
-ggplot(data=dist_table_all_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
+distance_f_prot<-ggplot(data=dist_table_all_go_f,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot()+
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7))  +
+  xlab("GO term") +
+  ylab("Distance to PC gene") +
+  scale_y_log10() +
+  scale_fill_brewer(palette="Spectral")
 
-ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
+
+distance_f_prot
+
+ggsave(distance_f_prot,filename = "distance_f_prot.png",height = 6,width = 9)
+
+
+distance_p_prot<-ggplot(data=dist_table_all_go_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot()+
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) 
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7))  +
+  xlab("GO term") +
+  ylab("Distance to PC gene") +
+  scale_y_log10() + 
+  scale_fill_brewer(palette="Spectral")
 
+distance_p_prot
+
+ggsave(distance_p_prot,filename = "distance_p_prot.png",height = 6,width = 9)
 ```
 
 ```{r}
@@ -2341,14 +2359,20 @@ dist_table_whole_trans_f[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt
 dist_table_whole_trans_p[,GO_term:=factor(GO_term,levels = prot_overlaps_20kb_dt_GO_longer_p_N$GO_term)]
 
 
-ggplot(data=dist_table_whole_trans_f,aes(x=GO_term,y=distance,fill=GO_term)) +
+dist_f<-ggplot(data=dist_table_whole_trans_f,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
   scale_fill_brewer(palette = "Spectral")
 
-ggplot(data=dist_table_whole_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
+dist_f
+ggsave(dist_f,filename = "dist_f.png",height = 6,width = 9)
+
+
+
+
+dist_p<-ggplot(data=dist_table_whole_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "none") +
@@ -2356,7 +2380,8 @@ ggplot(data=dist_table_whole_trans_p,aes(x=GO_term,y=distance,fill=GO_term)) +
   scale_fill_brewer(palette = "Spectral") 
 
 
-
+dist_p
+ggsave(dist_p,filename = "dist_p.png",height = 6,width = 9)
 
 
 ```
@@ -2637,14 +2662,19 @@ prot_overlaps_20kb_dt_GO_longer_p_merged_N[,cons_cat:=factor(cons_cat,levels=c("
 
 
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
+num_f_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.9,position="dodge") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
   scale_fill_brewer(palette="Set2")
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
+num_f_cons
+
+ggsave(num_f_cons,filename = "num_f_cons.png",height = 6,width = 9)
+
+
+ratio_f_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.9,position="fill") +
   theme_bw() +
   theme(legend.position = "top") +
@@ -2652,14 +2682,23 @@ ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=co
   scale_fill_brewer(palette="Set2",direction = -1)
 
 
-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
-  geom_bar(stat="identity",color="black",alpha=0.9,position="dodge") +
+ratio_f_cons
+
+ggsave(ratio_f_cons,filename = "ratio_f_cons.png",height = 6,width = 9)
+
+num_p_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
+  geom_bar(stat="identity",color="black",alpha=0.7,position="dodge") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set2")
+  scale_fill_brewer(palette="Spectral",name="lncRNA category") +
+  xlab("GO term") +
+  ylab("lncRNA category ratio")
 
-num_p<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
+num_p_cons
+ggsave(num_p_cons,filename = "num_p_cons.png",height = 6,width = 9)
+
+ratio_p_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.7,position="fill",width=0.7) +
   theme_bw() +
   theme(legend.position = "top") +
@@ -2668,9 +2707,9 @@ num_p<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term,y=N,
   xlab("GO term") +
   ylab("lncRNA category ratio")
 
-num_p
+ratio_p_cons
 
-ggsave(num_p,filename = "num_p.png",height = 6,width = 9)
+ggsave(ratio_p_cons,filename = "ratio_p_cons.png",height = 6,width = 9)
 
 
 
@@ -2688,15 +2727,25 @@ dist_table_whole_go_trans_p_merge[,cons_cat:=factor(cons_cat,levels=c("conserved
 
 
 
-ggplot(data=dist_table_whole_go_trans_f_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
+distance_f_cons<-ggplot(data=dist_table_whole_go_trans_f_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
   geom_boxplot(alpha=0.9)+
   theme_bw() +
   theme(legend.position = "top") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
   scale_fill_brewer(palette = "Set2") +
-  scale_y_log10()
+    scale_fill_brewer(palette = "Spectral",name="lncRNA category") +
+  scale_y_log10() +
+  xlab("GO term") +  
+  ylab("Distance to TSS")
 
-distance_p<-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
+distance_f_cons
+
+
+ggsave(distance_f_cons,filename = "distance_f_cons.png",height = 6,width = 9)
+
+
+
+distance_p_cons<-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
   geom_boxplot(alpha=0.7)+
   theme_bw() +
   theme(legend.position = "top") +
@@ -2706,21 +2755,53 @@ distance_p<-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=GO_term,y=distan
   xlab("GO term") +  
   ylab("Distance to TSS")
 
-distance_p
+distance_p_cons
 
-ggsave(distance_p,filename = "distance_p.png",height = 6,width = 9)
+ggsave(distance_p_cons,filename = "distance_p_cons.png",height = 6,width = 9)
 
 
-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=cons_cat,y=distance,fill=cons_cat)) +
-  geom_boxplot(alpha=0.9)+
+distance_cons<-ggplot(data=dist_table_whole_go_trans_p_merge,aes(x=cons_cat,y=distance,fill=cons_cat)) +
+  geom_boxplot(alpha=0.7,width=0.5)+
   theme_bw() +
   theme(legend.position = "top") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
+  theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
   scale_fill_brewer(palette = "Set2") +
-  scale_y_log10()
+  scale_fill_brewer(palette = "Spectral",name="lncRNA category") +
+    scale_y_log10() +
+  xlab("GO term") +  
+  ylab("Distance to TSS")
 
+distance_cons
+
+ggsave(distance_cons,filename = "distance_cons.png",height = 6,width = 9)
 ```
+
+```{r}
+#motifs
+
+prot_overlaps_20kb_dt[(start1<start2 & strand_ignore =="+") | (start1>start2 & strand_ignore  =="-"),prom:=T]
+
+prot_overlaps_20kb_dt_prom<-prot_overlaps_20kb_dt[prom==T]
+prot_overlaps_20kb_dt_prom_class<-merge(prot_overlaps_20kb_dt_prom,lncRNA_classification_table_with_gene_id[,.SD,.SDcols=c("gene_id","class")],by="gene_id")
+prot_overlaps_20kb_dt_prom_class_inter<-prot_overlaps_20kb_dt_prom_class[class=="intergenic_lncRNA"]
+
+motif_gff<-read.table("zinc_motif.txt",fill=T)
+motif_gff<-as.data.table(motif_gff)
+
+
+
+trans_motif<-unique(motif_gff$V1)
+
+trans_motif_gene_ids<-unique(isoform_map_table_together[transcript_name%in%trans_motif]$gene_id)
+
+
+trans_motif_gene_ids_prom<-trans_motif_gene_ids[trans_motif_gene_ids%in%prot_overlaps_20kb_dt_prom_class_inter$gene_id]
+
+trans_motif_gene_ids_prom
+```
+
 
 ```{r}
 
 ```
+
