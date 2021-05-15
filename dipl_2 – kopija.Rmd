@@ -1267,6 +1267,32 @@ lncrna_filtered_exons_clean_dt_gr_split_red_un<-unlist(lncrna_filtered_exons_cle
 lncrna_filtered_exons_clean_dt_gr_split_red_un_dt<-as.data.table(lncrna_filtered_exons_clean_dt_gr_split_red_un)
 lncrna_filtered_exons_clean_dt_gr_split_red_un_dt_merge<-merge(lncrna_filtered_exons_clean_dt_gr_split_red_un_dt,lncRNA_classification_table_with_gene_id,by="gene_id")
 exons_sum_table<-lncrna_filtered_exons_clean_dt_gr_split_red_un_dt_merge[,.(sum_el=sum(width)),by="class"]
+
+
+protein_coding_annotation_exons_clean[,gene:=str_extract(attribute,".*(?=\\.t\\d*)")]
+protein_exons_new<-makeGRangesFromDataFrame(protein_coding_annotation_exons_clean,keep.extra.columns = T)
+protein_exons_split<-split(protein_exons_new,protein_exons_new$gene)
+protein_exons_split_red<-reduce(protein_exons_split)
+protein_exons_split_red_un<-unlist(protein_exons_split_red,use.names = T)
+protein_exons_split_red_un_dt<-as.data.table(protein_exons_split_red_un)
+protein_exons_split_red_un_dt$attribute<-names(protein_exons_split_red_un)
+protein_exons_new<-makeGRangesFromDataFrame(protein_exons_split_red_un_dt,keep.extra.columns = T)
+
+
+protein_introns_new<-copy(protein_introns)
+
+protein_introns_new$gene<-str_extract(protein_introns_new$transcript,".*(?=\\.t\\d*)")
+protein_introns_new_split<-split(protein_introns_new,protein_introns_new$gene)
+protein_introns_new_split_red<-reduce(protein_introns_new_split)
+protein_introns_new_split_red_un<-unlist(protein_introns_new_split_red,use.names = T)
+protein_introns_new_split_red_un_dt<-as.data.table(protein_introns_new_split_red_un)
+protein_introns_new_split_red_un_dt$attribute<-names(protein_introns_new_split_red_un)
+protein_introns_new<-makeGRangesFromDataFrame(protein_introns_new_split_red_un_dt,keep.extra.columns = T)
+
+
+
+
+
 #repeats
 
 repeatmasker<-readRDS("AllRepeatMaskerFiles_filtered.RDS")
@@ -1274,6 +1300,11 @@ setnames(repeatmasker,c("SW_score","perc.sub","perc.del","perc.ins","query_name"
 repeatmasker_esu<-repeatmasker[species=="Eunapius"]
 repeatmasker_esu<-repeatmasker_esu[repeat_class!="Low complexity" & repeat_class!="Simple repeat"]
 repeatmasker_esu[,ID:=.GRP,by=c("query_name","start","end")]
+repeatmasker_esu[,rep_width:=abs(repeat_start-repeat_end)+1]
+repeatmasker_esu[,rep_gen_width:=abs(start-end)+1]
+repeatmasker_esu[,genperc:=100*rep_width/rep_gen_width]
+
+repeatmasker_esu<-repeatmasker_esu[genperc>=90]
 repeatmasker_esu_granges<-makeGRangesFromDataFrame(repeatmasker_esu,seqnames.field = "query_name",keep.extra.columns = T,ignore.strand = T)
 
 #within overlaps
@@ -1288,6 +1319,7 @@ start(lncrnas_final_reduced_together_1kb)<-new_starts
 lncrnas_final_reduced_together_1kb_final<-c(lncrnas_final_reduced_together_1kb,lncrnas_final_reduced_together_1kb_short)
 norm_width_1bb_lncrna<-1000*length(lncrnas_final_reduced_together_1kb)+sum(width(regions_lncrna_short))
 
+
 protein_final_reduced_together_1kb<-protein_coding_genes_granges[start(protein_coding_genes_granges)>1000]
 protein_final_reduced_together_1kb_short<-protein_coding_genes_granges[start(protein_coding_genes_granges)<=1000]
 regions_prot_short<-protein_final_reduced_together_1kb_short
@@ -1300,26 +1332,116 @@ protein_final_reduced_together_1kb_final<-c(protein_final_reduced_together_1kb,p
 norm_width_1bb_prot<-1000*length(protein_final_reduced_together_1kb)+sum(width(regions_prot_short))
 
 
+
+contig_length_table<-data.table(seqnames1=names(esu_genome),cont_length=sapply(esu_genome,length))
+
+lncrnas_final_reduced_together_dt_cont_length_merge<-plyr::join(lncrnas_final_reduced_together_dt,contig_length_table,by="seqnames1")
+
+
+lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-1000)]
+lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-1000)]
+lncrnas_final_reduced_together_20kb_short_right_dt<-as.data.table(lncrnas_final_reduced_together_20kb_short_right)
+colnames(lncrnas_final_reduced_together_20kb_short_right_dt)[1]<-"seqnames1"
+lncrnas_final_reduced_together_20kb_short_right_dt_merge<-plyr::join(lncrnas_final_reduced_together_20kb_short_right_dt,contig_length_table,by="seqnames1")
+
+end(lncrnas_final_reduced_together_20kb_short_right)<-lncrnas_final_reduced_together_20kb_short_right_dt_merge$cont_length
+
+end(lncrnas_final_reduced_together_20kb_right)<-end(lncrnas_final_reduced_together_20kb_right)+999
+dt_lncrna_right<-c(lncrnas_final_reduced_together_20kb_short_right,lncrnas_final_reduced_together_20kb_right)
+
+
+dt_lncrna_right_dt<-as.data.table(dt_lncrna_right)
+dt_lncrna_right_dt<-merge(dt_lncrna_right_dt,lncrnas_final_reduced_together,by="gene_id")
+dt_lncrna_right_dt[,start.x:=end.y]
+dt_lncrna_right_dt<-dt_lncrna_right_dt[,.SD,.SDcols=c("seqnames.x","start.x","end.x","width.x","strand.x","gene_id")]
+setnames(dt_lncrna_right_dt,c("seqnames","start","end","width","strand","gene_id"))
+
+
+dt_lncrna_right<-makeGRangesFromDataFrame(dt_lncrna_right_dt,keep.extra.columns = T)
+norm_width_1bb_lncrna<-norm_width_1bb_lncrna+sum(width(dt_lncrna_right))
+lncrnas_final_reduced_together_1kb_final_dt<-as.data.table(lncrnas_final_reduced_together_1kb_final)
+lncrnas_final_reduced_together_1kb_final_dt<-merge(lncrnas_final_reduced_together_1kb_final_dt,dt_lncrna_right_dt,by="gene_id")
+lncrnas_final_reduced_together_1kb_final_dt[,end.x:=end.y]
+lncrnas_final_reduced_together_1kb_final_dt<-lncrnas_final_reduced_together_1kb_final_dt[,.SD,.SDcols=c("seqnames.x","start.x","end.x","strand.x","gene","gene_id")]
+setnames(lncrnas_final_reduced_together_1kb_final_dt,c("seqnames","start","end","strand","gene","gene_id"))
+lncrnas_final_reduced_together_1kb_final<-makeGRangesFromDataFrame(lncrnas_final_reduced_together_1kb_final_dt,keep.extra.columns = T)
+
+
+
+setnames(contig_length_table,c("seqname","cont_length"))
+protein_cont_length_merge<-plyr::join(protein_coding_genes,contig_length_table,by="seqname")
+
+
+protein_20kb_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)<(protein_cont_length_merge$cont_length-1000)]
+protein_20kb_short_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)>(protein_cont_length_merge$cont_length-1000)]
+
+protein_20kb_short_right_dt<-as.data.table(protein_20kb_short_right)
+colnames(protein_20kb_short_right_dt)[1]<-"seqname"
+protein_20kb_short_right_dt_merge<-plyr::join(protein_20kb_short_right_dt,contig_length_table,by="seqname")
+
+end(protein_20kb_short_right)<-protein_20kb_short_right_dt_merge$cont_length
+
+end(protein_20kb_right)<-end(protein_20kb_right)+999
+
+dt_prot_right<-c(protein_20kb_short_right,protein_20kb_right)
+dt_prot_right_dt<-as.data.table(dt_prot_right)
+dt_prot_right_dt<-merge(dt_prot_right_dt,protein_coding_genes,by="attribute")
+dt_prot_right_dt[,start.x:=end.y]
+dt_prot_right_dt<-dt_prot_right_dt[,.SD,.SDcols=c("seqnames","start.x","end.x","width.x","strand","source.x","feature.x","score.x","strand_ignore.x","frame.x","attribute")]
+setnames(dt_prot_right_dt,c("seqnames","start","end","width","strand","source","feature","score","strand_ignore","frame","attribute"))
+
+
+dt_prot_right<-makeGRangesFromDataFrame(dt_prot_right_dt,keep.extra.columns = T)
+norm_width_1bb_prot<-norm_width_1bb_prot+sum(width(dt_prot_right))
+
+
+
+
+
+
+protein_final_reduced_together_1kb_final_dt<-as.data.table(protein_final_reduced_together_1kb_final)
+protein_final_reduced_together_1kb_final_dt<-as.data.table(merge(protein_final_reduced_together_1kb_final,dt_prot_right_dt,by="attribute"))
+
+
+protein_final_reduced_together_1kb_final_dt[,end.x:=end.y]
+protein_final_reduced_together_1kb_final_dt<-protein_final_reduced_together_1kb_final_dt[,.SD,.SDcols=c("seqnames.x","start.x","end.x","strand.x","source.x","feature.x","score.x","strand_ignore.x","frame.x","attribute")]
+setnames(protein_final_reduced_together_1kb_final_dt,c("seqnames","start","end","strand","source","feature","score","stramd_ignore","frame","attribute"))
+protein_final_reduced_together_1kb_final<-makeGRangesFromDataFrame(protein_final_reduced_together_1kb_final_dt,keep.extra.columns = T)
+
+
+
+
+
 #only_1kb_regions
 regions_lncrna_long<-lncrnas_final_reduced_together_1kb
 end(regions_lncrna_long)<-(start(regions_lncrna_long)+999)
 regions_lncrna_together<-c(regions_lncrna_long,regions_lncrna_short)
+regions_lncrna_together2<-dt_lncrna_right
+
+
+
 regions_prot_long<-protein_final_reduced_together_1kb
 end(regions_prot_long)<-(start(regions_prot_long)+999)
 regions_prot_together<-c(regions_prot_long,regions_prot_short)
+regions_prot_together2<-dt_prot_right
+
 
 overlaps_repeats_lncrna<-findOverlaps(repeatmasker_esu_granges,lncrnas_final_reduced_together,ignore.strand=T,type="within")
 overlaps_repeats_lncrna_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna)]),as.data.table(lncrnas_final_reduced_together[subjectHits(overlaps_repeats_lncrna)]))
-setnames(overlaps_repeats_lncrna_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
+setnames(overlaps_repeats_lncrna_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 
 overlaps_repeats_lncrna_1kb<-findOverlaps(repeatmasker_esu_granges,regions_lncrna_together,ignore.strand=T,type="within")
-overlaps_repeats_lncrna_table_1kb<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_1kb)]),as.data.table(lncrnas_final_reduced_together_1kb_final[subjectHits(overlaps_repeats_lncrna_1kb)]))
-setnames(overlaps_repeats_lncrna_table_1kb,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
+overlaps_repeats_lncrna_table_1kb<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_1kb)]),as.data.table(regions_lncrna_together[subjectHits(overlaps_repeats_lncrna_1kb)]))
+setnames(overlaps_repeats_lncrna_table_1kb,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
+
+overlaps_repeats_lncrna_1kb_end<-findOverlaps(repeatmasker_esu_granges,regions_lncrna_together2,ignore.strand=T,type="within")
+overlaps_repeats_lncrna_table_1kb_end<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_1kb_end)]),as.data.table(regions_lncrna_together2[subjectHits(overlaps_repeats_lncrna_1kb_end)]))
+setnames(overlaps_repeats_lncrna_table_1kb,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 
 
 id_trans_within<-unique(overlaps_repeats_lncrna_table[,.SD,.SDcols=c("ID","gene_id")])
 
-id_trans_region<-unique(overlaps_repeats_lncrna_table_1kb[,.SD,.SDcols=c("ID","gene_id")])
+id_trans_region<-unique(rbind(overlaps_repeats_lncrna_table_1kb[,.SD,.SDcols=c("ID","gene_id")],overlaps_repeats_lncrna_table_1kb_end[,.SD,.SDcols=c("ID","gene_id")]))
 
 
 
@@ -1340,16 +1462,19 @@ num_within_regions<-lncrna_repeat_overlap_category_class_reg[,uniqueN(gene_id),b
 
 overlaps_repeats_proteins<-findOverlaps(repeatmasker_esu_granges,protein_coding_genes_granges,ignore.strand=T,type="within")
 overlaps_repeats_proteins_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins)]),as.data.table(protein_coding_genes_granges[subjectHits(overlaps_repeats_proteins)]))
-setnames(overlaps_repeats_proteins_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
+setnames(overlaps_repeats_proteins_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 
 overlaps_repeats_proteins_1kb<-findOverlaps(repeatmasker_esu_granges,regions_prot_together,ignore.strand=T,type="within")
 overlaps_repeats_proteins_table_1kb<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins_1kb)]),as.data.table(regions_prot_together[subjectHits(overlaps_repeats_proteins_1kb)]))
-setnames(overlaps_repeats_proteins_table_1kb,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
+setnames(overlaps_repeats_proteins_table_1kb,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 
+overlaps_repeats_proteins_1kb_end<-findOverlaps(repeatmasker_esu_granges,regions_prot_together2,ignore.strand=T,type="within")
+overlaps_repeats_proteins_table_1kb_end<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins_1kb_end)]),as.data.table(regions_prot_together2[subjectHits(overlaps_repeats_proteins_1kb_end)]))
+setnames(overlaps_repeats_proteins_table_1kb_end,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 
 id_trans_within_prot<-unique(overlaps_repeats_proteins_table[,.SD,.SDcols=c("ID","attribute")])
 
-id_trans_region_prot<-unique(overlaps_repeats_proteins_table_1kb[,.SD,.SDcols=c("ID","attribute")])
+id_trans_region_prot<-unique(rbind(overlaps_repeats_proteins_table_1kb[,.SD,.SDcols=c("ID","attribute")],overlaps_repeats_proteins_table_1kb_end[,.SD,.SDcols=c("ID","attribute")]))
 
 num_within_genes_prot<-data.table(class="protein-coding gene",V1=nrow(unique(id_trans_within_prot,by="attribute")))
 num_within_regions_prot<-data.table(class="protein-coding gene",V1=nrow(unique(id_trans_region_prot,by="attribute")))
@@ -1364,6 +1489,23 @@ overlaps_repeat_together_num_table<-cbind(genes_numb_within,genes_numb_region$V1
 setnames(overlaps_repeat_together_num_table,c("class","genes_with_transposones_inside","genes_with_transposones_region","total_genes"))
 overlaps_repeat_together_num_table[,percentage_genes_within:=100*genes_with_transposones_inside/total_genes]
 overlaps_repeat_together_num_table[,percentage_genes_region:=100*genes_with_transposones_region/total_genes]
+
+
+#percentage of sequence
+
+overlaps_repeats_lncrna_table[,repeat_width:=abs(repeat_start-repeat_end)+1]
+overlaps_repeats_lncrna_table[,perc_seq:=100*repeat_width/width2]
+
+mean(overlaps_repeats_lncrna_table$perc_seq)
+
+
+overlaps_repeats_proteins_table[,repeat_width:=abs(repeat_start-repeat_end)+1]
+overlaps_repeats_proteins_table[,perc_seq:=100*repeat_width/width2]
+
+
+mean(overlaps_repeats_proteins_table$perc_seq)
+
+
 #20 bp overlap
 
 #any overlaps
@@ -1371,7 +1513,7 @@ overlaps_repeat_together_num_table[,percentage_genes_region:=100*genes_with_tran
 
 overlaps_repeats_lncrna_bases<-findOverlaps(repeatmasker_esu_granges,lncrnas_final_reduced_together_1kb_final,ignore.strand=T,type="any")
 overlaps_repeats_lncrna_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_bases)]),as.data.table(lncrnas_final_reduced_together_1kb_final[subjectHits(overlaps_repeats_lncrna_bases)]))
-setnames(overlaps_repeats_lncrna_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
+setnames(overlaps_repeats_lncrna_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_lncrna_bases_table)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_lncrna_bases_table$start1[i],overlaps_repeats_lncrna_bases_table$end1[i]),c(overlaps_repeats_lncrna_bases_table$start2[i],overlaps_repeats_lncrna_bases_table$end2[i])))
@@ -1381,38 +1523,76 @@ overlaps_repeats_lncrna_bases_table[,intersect_width:=inter_width_vector]
 #repeats exons overlap
 
 
-overlaps_repeats_exons_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_exons_clean,ignore.strand=T)
-overlaps_repeats_exons_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_exons_20)]),as.data.table(lncrna_filtered_exons_clean[subjectHits(overlaps_repeats_exons_20)]))
-setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","transcript"))
-overlaps_repeats_exons_table_20<-merge(overlaps_repeats_exons_table_20,isoform_map_table_together_cp)
+overlaps_repeats_exons_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_exons_clean_dt_gr_split_red_un,ignore.strand=T)
+overlaps_repeats_exons_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_exons_20)]),as.data.table(lncrna_filtered_exons_clean_dt_gr_split_red_un_dt[subjectHits(overlaps_repeats_exons_20)]))
+setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","transcript","gene_id"))
+#overlaps_repeats_exons_table_20<-merge(overlaps_repeats_exons_table_20,isoform_map_table_together_cp)
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_exons_table_20)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_exons_table_20$start1[i],overlaps_repeats_exons_table_20$end1[i]),c(overlaps_repeats_exons_table_20$start2[i],overlaps_repeats_exons_table_20$end2[i])))
 }
 overlaps_repeats_exons_table_20[,intersect_width:=inter_width_vector]
 
+overlaps_repeats_exons_table_20[,inter_width_sum_trans:=sum(intersect_width),by=c("ID","gene_id")]
+
+
+lncrna_exons_total_width<-lncrna_filtered_exons_clean_dt_gr_split_red_un_dt_merge[,.(total_ex_len=sum(width)),by=gene_id]
+lncrna_ex_total_length<-overlaps_repeats_exons_table_20[,.SD,.SDcols=c("gene_id","inter_width_sum_trans")]
+
+lncrna_ex_total_length_merge<-merge(lncrna_ex_total_length,lncrna_exons_total_width,by="gene_id")
+lncrna_ex_total_length_merge[,perc_ex:=100*inter_width_sum_trans/total_ex_len]
+mean(lncrna_ex_total_length_merge$perc_ex)
+median(lncrna_ex_total_length_merge$perc_ex)
+
+
+
 #repeats introns overlap
 
-overlaps_repeats_introns_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_introns_clean,ignore.strand=T)
-overlaps_repeats_introns_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_introns_20)]),as.data.table(lncrna_filtered_introns_clean[subjectHits(overlaps_repeats_introns_20)]))
-setnames(overlaps_repeats_introns_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","transcript"))
-overlaps_repeats_introns_table_20<-merge(overlaps_repeats_introns_table_20,isoform_map_table_together_cp)
+overlaps_repeats_introns_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_introns_clean_dt_gr_split_red_un,ignore.strand=T)
+overlaps_repeats_introns_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_introns_20)]),as.data.table(lncrna_filtered_introns_clean_dt_gr_split_red_un[subjectHits(overlaps_repeats_introns_20)]))
+setnames(overlaps_repeats_introns_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","transcript","gene_id"))
+#overlaps_repeats_introns_table_20<-merge(overlaps_repeats_introns_table_20,isoform_map_table_together_cp)
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_introns_table_20)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_introns_table_20$start1[i],overlaps_repeats_introns_table_20$end1[i]),c(overlaps_repeats_introns_table_20$start2[i],overlaps_repeats_introns_table_20$end2[i])))
 }
 overlaps_repeats_introns_table_20[,intersect_width:=inter_width_vector]
 
+#ex in
+
+overlaps_repeats_exons_table_20[,gene_trans_paste:=paste(gene_id,ID,sep="_")]
+overlaps_repeats_introns_table_20[,gene_trans_paste:=paste(gene_id,ID,sep="_")]
+
+
+
+
+100*length(unique(overlaps_repeats_exons_table_20[gene_trans_paste%in%overlaps_repeats_introns_table_20$gene_trans_paste]$gene_trans_paste))/length(unique(overlaps_repeats_exons_table_20$gene_trans_paste))
+
+
+
+
+
+
 ##regions
 overlaps_repeats_lncrna_bases_regions<-findOverlaps(repeatmasker_esu_granges,regions_lncrna_together,ignore.strand=T,type="any")
 overlaps_repeats_lncrna_bases_table_regions<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_bases_regions)]),as.data.table(regions_lncrna_together[subjectHits(overlaps_repeats_lncrna_bases_regions)]))
-setnames(overlaps_repeats_lncrna_bases_table_regions,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
+setnames(overlaps_repeats_lncrna_bases_table_regions,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_lncrna_bases_table_regions)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_lncrna_bases_table_regions$start1[i],overlaps_repeats_lncrna_bases_table_regions$end1[i]),c(overlaps_repeats_lncrna_bases_table_regions$start2[i],overlaps_repeats_lncrna_bases_table_regions$end2[i])))
 }
 overlaps_repeats_lncrna_bases_table_regions[,intersect_width:=inter_width_vector]
 
+
+
+overlaps_repeats_lncrna_bases_regions_end<-findOverlaps(repeatmasker_esu_granges,regions_lncrna_together2,ignore.strand=T,type="any")
+overlaps_repeats_lncrna_bases_table_regions_end<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_lncrna_bases_regions_end)]),as.data.table(regions_lncrna_together2[subjectHits(overlaps_repeats_lncrna_bases_regions_end)]))
+setnames(overlaps_repeats_lncrna_bases_table_regions_end,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene_id"))
+inter_width_vector<-c()
+for (i in 1:nrow(overlaps_repeats_lncrna_bases_table_regions_end)) {
+  inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_lncrna_bases_table_regions_end$start1[i],overlaps_repeats_lncrna_bases_table_regions_end$end1[i]),c(overlaps_repeats_lncrna_bases_table_regions_end$start2[i],overlaps_repeats_lncrna_bases_table_regions_end$end2[i])))
+}
+overlaps_repeats_lncrna_bases_table_regions_end[,intersect_width:=inter_width_vector]
 
 
 lncrna_overlap_exons_20<-unique(data.table(ID=overlaps_repeats_exons_table_20$ID,gene_id=overlaps_repeats_exons_table_20$gene_id,intersect=overlaps_repeats_exons_table_20$intersect_width))
@@ -1424,13 +1604,18 @@ lncrna_overlap_introns_20<-unique(data.table(ID=overlaps_repeats_introns_table_2
 lncrna_overlap_regions_20<-unique(data.table(ID=overlaps_repeats_lncrna_bases_table_regions$ID,gene_id=overlaps_repeats_lncrna_bases_table_regions$gene_id,intersect=overlaps_repeats_lncrna_bases_table_regions$intersect_width))
 
 
+lncrna_overlap_regions_20_end<-unique(data.table(ID=overlaps_repeats_lncrna_bases_table_regions_end$ID,gene_id=overlaps_repeats_lncrna_bases_table_regions_end$gene_id,intersect=overlaps_repeats_lncrna_bases_table_regions_end$intersect_width))
+
+
+lncrna_overlap_regions_20
+
 
 lncrna_overlap_exons_20[,category:="exon"]
 lncrna_overlap_introns_20[,category:="intron"]
-lncrna_overlap_regions_20[,category:="five_prime"]
+lncrna_overlap_regions_20[,category:="proximity"]
+lncrna_overlap_regions_20_end[,category:="proximity"]
 
-
-lncrna_repeat_overlap_category_20<-rbind(lncrna_overlap_exons_20,lncrna_overlap_introns_20,lncrna_overlap_regions_20)
+lncrna_repeat_overlap_category_20<-rbind(lncrna_overlap_exons_20,lncrna_overlap_introns_20,lncrna_overlap_regions_20,lncrna_overlap_regions_20_end)
 
 
 
@@ -1442,7 +1627,7 @@ lncrna_repeat_overlap_category_20_class_merged<-merge(lncrna_repeat_overlap_cate
 lncrna_repeat_overlap_category_20_class_merged[,more:=ifelse(nrow(.SD)>1,T,F),by=c("ID","gene_id")]
 lncrna_repeat_overlap_category_20_class_merged[,max_width_element:=ifelse(.SD==max(.SD),T,F),.SDcols="intersect",by=c("gene_id","ID")]
 lncrna_repeat_overlap_category_20_class_merged[max_width_element==T,more:=F]
-lncrna_repeat_overlap_category_20_class_merged<-lncrna_repeat_overlap_category_20_class_merged[more==F]
+#lncrna_repeat_overlap_category_20_class_merged<-lncrna_repeat_overlap_category_20_class_merged[more==F]
 
 overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("repeat_class","category","class")]
 
@@ -1459,7 +1644,7 @@ overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_mer
 
 overlaps_repeats_proteins_bases<-findOverlaps(repeatmasker_esu_granges,protein_final_reduced_together_1kb_final,ignore.strand=T,type="any")
 overlaps_repeats_proteins_bases_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_proteins_bases)]),as.data.table(protein_final_reduced_together_1kb_final[subjectHits(overlaps_repeats_proteins_bases)]))
-setnames(overlaps_repeats_proteins_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
+setnames(overlaps_repeats_proteins_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_proteins_bases_table)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_proteins_bases_table$start1[i],overlaps_repeats_proteins_bases_table$end1[i]),c(overlaps_repeats_proteins_bases_table$start2[i],overlaps_repeats_proteins_bases_table$end2[i])))
@@ -1467,24 +1652,39 @@ for (i in 1:nrow(overlaps_repeats_proteins_bases_table)) {
 overlaps_repeats_proteins_bases_table[,intersect_width:=inter_width_vector]
 
 
+
+
+
+
 #repeats exons overlap
 
 
-overlaps_repeats_protein_exons_20_prot<-findOverlaps(repeatmasker_esu_granges,protein_exons,ignore.strand=T)
-overlaps_repeats_protein_exons_table_20_prot<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_protein_exons_20_prot)]),as.data.table(protein_exons[subjectHits(overlaps_repeats_protein_exons_20_prot)]))
-setnames(overlaps_repeats_protein_exons_table_20_prot,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
-overlaps_repeats_protein_exons_table_20_prot[,attribute:=str_extract(attribute,".*(?=\\.t\\d*)")]
+overlaps_repeats_protein_exons_20_prot<-findOverlaps(repeatmasker_esu_granges,protein_exons_new,ignore.strand=T)
+overlaps_repeats_protein_exons_table_20_prot<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_protein_exons_20_prot)]),as.data.table(protein_exons_new[subjectHits(overlaps_repeats_protein_exons_20_prot)]))
+setnames(overlaps_repeats_protein_exons_table_20_prot,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_protein_exons_table_20_prot)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_protein_exons_table_20_prot$start1[i],overlaps_repeats_protein_exons_table_20_prot$end1[i]),c(overlaps_repeats_protein_exons_table_20_prot$start2[i],overlaps_repeats_protein_exons_table_20_prot$end2[i])))
 }
 overlaps_repeats_protein_exons_table_20_prot[,intersect_width:=inter_width_vector]
+overlaps_repeats_protein_exons_table_20_prot[,inter_width_sum_trans:=sum(intersect_width),by=c("ID","attribute")]
+protein_exons_new_dt<-as.data.table(protein_exons_new)
+protein_exons_new_dt_total_width<-protein_exons_new_dt[,.(total_ex_len=sum(width)),by=attribute]
+prot_ex_total_length<-overlaps_repeats_protein_exons_table_20_prot[,.SD,.SDcols=c("attribute","inter_width_sum_trans")]
+
+prot_ex_total_length_merge<-merge(prot_ex_total_length,protein_exons_new_dt_total_width)
+prot_ex_total_length_merge[,perc_ex:=100*inter_width_sum_trans/total_ex_len]
+
+
+
+
+
+
 #repeats introns overlap
 
-overlaps_repeats_protein_introns_20_prot<-findOverlaps(repeatmasker_esu_granges,protein_introns,ignore.strand=T)
-overlaps_repeats_protein_introns_table_20_prot<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_protein_introns_20_prot)]),as.data.table(protein_introns[subjectHits(overlaps_repeats_protein_introns_20_prot)]))
-setnames(overlaps_repeats_protein_introns_table_20_prot,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","attribute"))
-overlaps_repeats_protein_introns_table_20_prot[,attribute:=str_extract(attribute,".*(?=\\.t\\d*)")]
+overlaps_repeats_protein_introns_20_prot<-findOverlaps(repeatmasker_esu_granges,protein_introns_new,ignore.strand=T)
+overlaps_repeats_protein_introns_table_20_prot<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_protein_introns_20_prot)]),as.data.table(protein_introns_new[subjectHits(overlaps_repeats_protein_introns_20_prot)]))
+setnames(overlaps_repeats_protein_introns_table_20_prot,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_protein_introns_table_20_prot)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_protein_introns_table_20_prot$start1[i],overlaps_repeats_protein_introns_table_20_prot$end1[i]),c(overlaps_repeats_protein_introns_table_20_prot$start2[i],overlaps_repeats_protein_introns_table_20_prot$end2[i])))
@@ -1492,15 +1692,37 @@ for (i in 1:nrow(overlaps_repeats_protein_introns_table_20_prot)) {
 overlaps_repeats_protein_introns_table_20_prot[,intersect_width:=inter_width_vector]
 
 
+
+#ex in 
+
+overlaps_repeats_protein_exons_table_20_prot[,gene_trans_paste:=paste(attribute,ID,sep="_")]
+overlaps_repeats_protein_introns_table_20_prot[,gene_trans_paste:=paste(attribute,ID,sep="_")]
+
+
+
+
+100*length(unique(overlaps_repeats_protein_exons_table_20_prot[gene_trans_paste%in%overlaps_repeats_protein_introns_table_20_prot$gene_trans_paste]$gene_trans_paste))/length(unique(overlaps_repeats_protein_exons_table_20_prot$gene_trans_paste))
+
 ##regions
 overlaps_repeats_protein_regions_20_prot_regions<-findOverlaps(repeatmasker_esu_granges,regions_prot_together,ignore.strand=T,type="any")
 overlaps_repeats_protein_regions_20_prot_regions_table<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_protein_regions_20_prot_regions)]),as.data.table(regions_prot_together[subjectHits(overlaps_repeats_protein_regions_20_prot_regions)]))
-setnames(overlaps_repeats_protein_regions_20_prot_regions_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore1","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
+setnames(overlaps_repeats_protein_regions_20_prot_regions_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore1","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_protein_regions_20_prot_regions_table)) {
   inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_protein_regions_20_prot_regions_table$start1[i],overlaps_repeats_protein_regions_20_prot_regions_table$end1[i]),c(overlaps_repeats_protein_regions_20_prot_regions_table$start2[i],overlaps_repeats_protein_regions_20_prot_regions_table$end2[i])))
 }
 overlaps_repeats_protein_regions_20_prot_regions_table[,intersect_width:=inter_width_vector]
+
+overlaps_repeats_protein_regions_20_prot_regions_end<-findOverlaps(repeatmasker_esu_granges,regions_prot_together2,ignore.strand=T,type="any")
+overlaps_repeats_protein_regions_20_prot_regions_table_end<-cbind(as.data.table(repeatmasker_esu[queryHits(overlaps_repeats_protein_regions_20_prot_regions_end)]),as.data.table(regions_prot_together2[subjectHits(overlaps_repeats_protein_regions_20_prot_regions_end)]))
+setnames(overlaps_repeats_protein_regions_20_prot_regions_table_end,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore1","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","source","feature","score","strand_ignore2","frame","attribute"))
+inter_width_vector<-c()
+for (i in 1:nrow(overlaps_repeats_protein_regions_20_prot_regions_table_end)) {
+  inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_protein_regions_20_prot_regions_table_end$start1[i],overlaps_repeats_protein_regions_20_prot_regions_table_end$end1[i]),c(overlaps_repeats_protein_regions_20_prot_regions_table_end$start2[i],overlaps_repeats_protein_regions_20_prot_regions_table_end$end2[i])))
+}
+overlaps_repeats_protein_regions_20_prot_regions_table_end[,intersect_width:=inter_width_vector]
+
+
 
 
 protein_overlap_exons_20_prot<-unique(data.table(ID=overlaps_repeats_protein_exons_table_20_prot$ID,attribute=overlaps_repeats_protein_exons_table_20_prot$attribute,intersect=overlaps_repeats_protein_exons_table_20_prot$intersect_width))
@@ -1509,10 +1731,17 @@ protein_overlap_introns_20_prot<-unique(data.table(ID=overlaps_repeats_protein_i
 
 protein_overlap_regions_20<-unique(data.table(ID=overlaps_repeats_protein_regions_20_prot_regions_table$ID,attribute=overlaps_repeats_protein_regions_20_prot_regions_table$attribute,intersect=overlaps_repeats_protein_regions_20_prot_regions_table$intersect_width))
 
+protein_overlap_regions_20_end<-unique(data.table(ID=overlaps_repeats_protein_regions_20_prot_regions_table_end$ID,attribute=overlaps_repeats_protein_regions_20_prot_regions_table_end$attribute,intersect=overlaps_repeats_protein_regions_20_prot_regions_table_end$intersect_width))
+
+
+
+
 
 protein_overlap_exons_20_prot[,category:="exon"]
 protein_overlap_introns_20_prot[,category:="intron"]
-protein_overlap_regions_20[,category:="five_prime"]
+protein_overlap_regions_20[,category:="proximity"]
+protein_overlap_regions_20_end[,category:="proximity"]
+
 protein_repeat_overlap_category_20<-rbind(protein_overlap_exons_20_prot,protein_overlap_introns_20_prot,protein_overlap_regions_20)
 
 
@@ -1527,7 +1756,7 @@ protein_repeat_overlap_category_20_prot_merged<-merge(protein_repeat_overlap_cat
 protein_repeat_overlap_category_20_prot_merged[,more:=ifelse(nrow(.SD)>1,T,F),by=c("ID","attribute")]
 protein_repeat_overlap_category_20_prot_merged[,max_width_element:=ifelse(.SD==max(.SD),T,F),.SDcols="intersect",by=c("attribute","ID")]
 protein_repeat_overlap_category_20_prot_merged[max_width_element==T,more:=F]
-protein_repeat_overlap_category_20_prot_merged<-protein_repeat_overlap_category_20_prot_merged[more==F]
+#protein_repeat_overlap_category_20_prot_merged<-protein_repeat_overlap_category_20_prot_merged[more==F]
 
 overlaps_repeat_protein_num_table_20<-protein_repeat_overlap_category_20_prot_merged[,.(number_of_bases=sum(intersect)),by=c("class","category","repeat_class")]
 
@@ -1535,7 +1764,7 @@ overlaps_repeat_protein_num_table_20<-protein_repeat_overlap_category_20_prot_me
 overlaps_repeat_together_num_table_20<-rbind(overlaps_repeat_lncrna_num_table_20,overlaps_repeat_protein_num_table_20)
 
 
-overlaps_repeat_together_num_table_20[,category:=factor(category,levels = c("intron","exon","five_prime"))]
+overlaps_repeat_together_num_table_20[,category:=factor(category,levels = c("intron","exon","proximity"))]
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20<-copy(overlaps_repeat_together_num_table_20)
 
@@ -1549,6 +1778,12 @@ regions_lncrna_together_dt<-as.data.table(regions_lncrna_together)
 regions_lncrna_together_dt_class<-merge(regions_lncrna_together_dt,lncRNA_classification_table_with_gene_id,by="gene_id")
 regions_sum_table<-regions_lncrna_together_dt_class[,.(sum_el=sum(width)),by=class]
 
+regions_lncrna_together_dt2<-as.data.table(regions_lncrna_together2)
+regions_lncrna_together_dt_class2<-merge(regions_lncrna_together_dt2,lncRNA_classification_table_with_gene_id,by="gene_id")
+regions_sum_table2<-regions_lncrna_together_dt_class2[,.(sum_el=sum(width)),by=class]
+
+regions_sum_table[,sum_el:=sum_el+regions_sum_table2$sum_el]
+
 
 overlapping_exons_sum<-exons_sum_table[class=="overlapping_lncRNA"]$sum_el
 overlapping_introns_sum<-introns_sum_table[class=="overlapping_lncRNA"]$sum_el
@@ -1559,14 +1794,14 @@ intronic_regions_sum<-regions_sum_table[class=="intronic_lncRNA"]$sum_el
 intergenic_exons_sum<-exons_sum_table[class=="intergenic_lncRNA"]$sum_el
 intergenic_introns_sum<-introns_sum_table[class=="intergenic_lncRNA"]$sum_el
 intergenic_regions_sum<-regions_sum_table[class=="intergenic_lncRNA"]$sum_el
-protein_exons_sum<-sum(width(unique(protein_exons)))
-protein_introns_sum<-sum(width(unique(protein_introns)))
+protein_exons_sum<-sum(width(unique(protein_exons_new)))
+protein_introns_sum<-sum(width(unique(protein_introns_new)))
 protein_regions_sum<-norm_width_1bb_prot
 
 
 #total_lengths_dt<-data.table(class=c(rep("overlapping_lncRNA",3),rep("intronic_lncRNA",3),rep("intergenic_lncRNA",3),rep("protein_coding_genes",3)),category=rep(c("exon","intron","five_prime"),4),total_sum_inside=c(overlapping_exons_sum,overlapping_introns_sum,overlapping_regions_sum,intronic_exons_sum,intronic_introns_sum,intronic_regions_sum,intergenic_exons_sum,intergenic_introns_sum,intergenic_regions_sum,protein_exons_sum,protein_introns_sum,protein_regions_sum))
 #repeat lengths normalization
-class_sum<-repeatmasker_esu[,.(total_sum=sum(end-start)),by="repeat_class"]
+class_sum<-repeatmasker_esu[,.(total_sum=sum(abs(end-start)+1)),by="repeat_class"]
 overlaps_repeat_together_num_table_normalized_sum_bases_20<-merge(overlaps_repeat_together_num_table_normalized_sum_bases_20,class_sum,by="repeat_class")
 
 
@@ -1579,18 +1814,18 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20[,number_of_bases:=num
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,number_of_bases:=as.double(number_of_bases)]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA" & category=="exon",number_of_bases:=number_of_bases/overlapping_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA" & category=="intron",number_of_bases:=number_of_bases/overlapping_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/overlapping_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/overlapping_regions_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA" & category=="exon",number_of_bases:=number_of_bases/intronic_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA" & category=="intron",number_of_bases:=number_of_bases/intronic_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/intronic_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/intronic_regions_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA" & category=="exon",number_of_bases:=number_of_bases/intergenic_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA" & category=="intron",number_of_bases:=number_of_bases/intergenic_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/intergenic_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/intergenic_regions_sum]
 
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="exon",number_of_bases:=number_of_bases/protein_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="intron",number_of_bases:=number_of_bases/protein_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="five_prime",number_of_bases:=number_of_bases/protein_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes" & category=="proximity",number_of_bases:=number_of_bases/protein_regions_sum]
 
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
@@ -1600,7 +1835,7 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_l
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes",class:="Protein-coding genes"]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,repeat_class:=factor(repeat_class,levels = c("Unknown","LINE","LTR","DNA"))]
 overlaps_repeat_together_num_table_normalized_sum_bases_20<-overlaps_repeat_together_num_table_normalized_sum_bases_20[is.na(repeat_class)==F]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[,category:=factor(category,levels = c("five_prime","exon","intron"))]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[,category:=factor(category,levels = c("proximity","exon","intron"))]
 repeats_plot_normalized_sum_bases_20<-ggplot(data=overlaps_repeat_together_num_table_normalized_sum_bases_20,aes(x=repeat_class,y=number_of_bases,fill=category)) +
   geom_bar(position=position_dodge(preserve = "single"),stat = "identity", width=0.7,col="black",alpha=0.8) +
   theme_bw() +
@@ -1629,18 +1864,18 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20_2<-rbind(overlaps_rep
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,number_of_bases:=as.double(number_of_bases)]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA" & category=="exon",number_of_bases:=number_of_bases/overlapping_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA" & category=="intron",number_of_bases:=number_of_bases/overlapping_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/overlapping_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/overlapping_regions_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA" & category=="exon",number_of_bases:=number_of_bases/intronic_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA" & category=="intron",number_of_bases:=number_of_bases/intronic_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/intronic_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intronic_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/intronic_regions_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA" & category=="exon",number_of_bases:=number_of_bases/intergenic_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA" & category=="intron",number_of_bases:=number_of_bases/intergenic_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA" & category=="five_prime",number_of_bases:=number_of_bases/intergenic_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA" & category=="proximity",number_of_bases:=number_of_bases/intergenic_regions_sum]
 
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes" & category=="exon",number_of_bases:=number_of_bases/protein_exons_sum]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes" & category=="intron",number_of_bases:=number_of_bases/protein_introns_sum]
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes" & category=="five_prime",number_of_bases:=number_of_bases/protein_regions_sum]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes" & category=="proximity",number_of_bases:=number_of_bases/protein_regions_sum]
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="intergenic_lncRNA",class:="Intergeic lncRNA"]
@@ -1649,7 +1884,7 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="overlapping
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="protein_coding_genes",class:="Protein-coding genes"]
 
 
-overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,category:=factor(category,levels = c("five_prime","exon","intron"))]
+overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,category:=factor(category,levels = c("proximity","exon","intron"))]
 repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num_table_normalized_sum_bases_20_2,aes(x=class,y=number_of_bases,fill=category)) +
   geom_bar(position="dodge",stat = "identity",col="black",alpha=0.8) +
   theme_bw() +
@@ -2113,11 +2348,11 @@ blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq[lncrna_emu%in%lncrnas_final_
 #1 MB
 
   
-lncrnas_final_reduced_together_20kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>10000]
-lncrnas_final_reduced_together_20kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=10000]
+lncrnas_final_reduced_together_20kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>2500]
+lncrnas_final_reduced_together_20kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=2500]
 end(lncrnas_final_reduced_together_20kb_short)<-(start(lncrnas_final_reduced_together_20kb_short)-1)
 start(lncrnas_final_reduced_together_20kb_short)<-(rep(1,length(lncrnas_final_reduced_together_20kb_short)))
-new_starts<-start(lncrnas_final_reduced_together_20kb)-10000
+new_starts<-start(lncrnas_final_reduced_together_20kb)-2500
 start(lncrnas_final_reduced_together_20kb)<-new_starts
 lncrnas_final_reduced_together_20kb_final<-c(lncrnas_final_reduced_together_20kb,lncrnas_final_reduced_together_20kb_short)
 
@@ -2129,8 +2364,8 @@ contig_length_table<-data.table(seqnames1=names(esu_genome),cont_length=sapply(e
 lncrnas_final_reduced_together_dt_cont_length_merge<-plyr::join(lncrnas_final_reduced_together_dt,contig_length_table,by="seqnames1")
 
 
-lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-10000)]
-lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-10000)]
+lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-2500)]
+lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-2500)]
 
 lncrnas_final_reduced_together_20kb_short_right_dt<-as.data.table(lncrnas_final_reduced_together_20kb_short_right)
 colnames(lncrnas_final_reduced_together_20kb_short_right_dt)[1]<-"seqnames1"
@@ -2138,7 +2373,7 @@ lncrnas_final_reduced_together_20kb_short_right_dt_merge<-plyr::join(lncrnas_fin
 
 end(lncrnas_final_reduced_together_20kb_short_right)<-lncrnas_final_reduced_together_20kb_short_right_dt_merge$cont_length
 
-end(lncrnas_final_reduced_together_20kb_right)<-end(lncrnas_final_reduced_together_20kb_right)+10000
+end(lncrnas_final_reduced_together_20kb_right)<-end(lncrnas_final_reduced_together_20kb_right)+2500
 
 
 lncrnas_final_reduced_together_20kb_dt<-as.data.table(lncrnas_final_reduced_together_20kb_final)
@@ -2663,11 +2898,14 @@ prot_overlaps_20kb_dt_GO_longer_p_merged_N[,cons_cat:=factor(cons_cat,levels=c("
 
 
 num_f_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
-  geom_bar(stat="identity",color="black",alpha=0.9,position="dodge") +
+  geom_bar(stat="identity",color="black",alpha=0.7,position="dodge") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set2")
+  scale_fill_brewer(palette="Spectral",name="lncRNA category") +
+  xlab("GO term") +
+  ylab("lncRNA category number")
+
 
 num_f_cons
 
@@ -2675,11 +2913,14 @@ ggsave(num_f_cons,filename = "num_f_cons.png",height = 6,width = 9)
 
 
 ratio_f_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term,y=N,fill=cons_cat)) +
-  geom_bar(stat="identity",color="black",alpha=0.9,position="fill") +
+  geom_bar(stat="identity",color="black",alpha=0.7,position="fill") +
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
-  scale_fill_brewer(palette="Set2",direction = -1)
+  scale_fill_brewer(palette="Set2",direction = -1) +
+    scale_fill_brewer(palette="Spectral",name="lncRNA category") +
+  xlab("GO term") +
+  ylab("lncRNA category ratio")
 
 
 ratio_f_cons
@@ -2693,7 +2934,7 @@ num_p_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 9)) +
   scale_fill_brewer(palette="Spectral",name="lncRNA category") +
   xlab("GO term") +
-  ylab("lncRNA category ratio")
+  ylab("lncRNA category number")
 
 num_p_cons
 ggsave(num_p_cons,filename = "num_p_cons.png",height = 6,width = 9)
@@ -2728,7 +2969,7 @@ dist_table_whole_go_trans_p_merge[,cons_cat:=factor(cons_cat,levels=c("conserved
 
 
 distance_f_cons<-ggplot(data=dist_table_whole_go_trans_f_merge,aes(x=GO_term,y=distance,fill=cons_cat)) +
-  geom_boxplot(alpha=0.9)+
+  geom_boxplot(alpha=0.7)+
   theme_bw() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45,hjust = 0.9,size = 7)) +
