@@ -1339,7 +1339,7 @@ lncrnas_final_reduced_together_dt_cont_length_merge<-plyr::join(lncrnas_final_re
 
 
 lncrnas_final_reduced_together_20kb_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)<(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-1000)]
-lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-1000)]
+lncrnas_final_reduced_together_20kb_short_right<-lncrnas_final_reduced_together[end(lncrnas_final_reduced_together)>=(lncrnas_final_reduced_together_dt_cont_length_merge$cont_length-1000)]
 lncrnas_final_reduced_together_20kb_short_right_dt<-as.data.table(lncrnas_final_reduced_together_20kb_short_right)
 colnames(lncrnas_final_reduced_together_20kb_short_right_dt)[1]<-"seqnames1"
 lncrnas_final_reduced_together_20kb_short_right_dt_merge<-plyr::join(lncrnas_final_reduced_together_20kb_short_right_dt,contig_length_table,by="seqnames1")
@@ -1373,7 +1373,7 @@ protein_cont_length_merge<-plyr::join(protein_coding_genes,contig_length_table,b
 
 
 protein_20kb_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)<(protein_cont_length_merge$cont_length-1000)]
-protein_20kb_short_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)>(protein_cont_length_merge$cont_length-1000)]
+protein_20kb_short_right<-protein_coding_genes_granges[end(protein_coding_genes_granges)>=(protein_cont_length_merge$cont_length-1000)]
 
 protein_20kb_short_right_dt<-as.data.table(protein_20kb_short_right)
 colnames(protein_20kb_short_right_dt)[1]<-"seqname"
@@ -1541,6 +1541,7 @@ lncrna_ex_total_length<-overlaps_repeats_exons_table_20[,.SD,.SDcols=c("gene_id"
 
 lncrna_ex_total_length_merge<-merge(lncrna_ex_total_length,lncrna_exons_total_width,by="gene_id")
 lncrna_ex_total_length_merge[,perc_ex:=100*inter_width_sum_trans/total_ex_len]
+
 mean(lncrna_ex_total_length_merge$perc_ex)
 median(lncrna_ex_total_length_merge$perc_ex)
 
@@ -1607,8 +1608,6 @@ lncrna_overlap_regions_20<-unique(data.table(ID=overlaps_repeats_lncrna_bases_ta
 lncrna_overlap_regions_20_end<-unique(data.table(ID=overlaps_repeats_lncrna_bases_table_regions_end$ID,gene_id=overlaps_repeats_lncrna_bases_table_regions_end$gene_id,intersect=overlaps_repeats_lncrna_bases_table_regions_end$intersect_width))
 
 
-lncrna_overlap_regions_20
-
 
 lncrna_overlap_exons_20[,category:="exon"]
 lncrna_overlap_introns_20[,category:="intron"]
@@ -1627,15 +1626,12 @@ lncrna_repeat_overlap_category_20_class_merged<-merge(lncrna_repeat_overlap_cate
 lncrna_repeat_overlap_category_20_class_merged[,more:=ifelse(nrow(.SD)>1,T,F),by=c("ID","gene_id")]
 lncrna_repeat_overlap_category_20_class_merged[,max_width_element:=ifelse(.SD==max(.SD),T,F),.SDcols="intersect",by=c("gene_id","ID")]
 lncrna_repeat_overlap_category_20_class_merged[max_width_element==T,more:=F]
-#lncrna_repeat_overlap_category_20_class_merged<-lncrna_repeat_overlap_category_20_class_merged[more==F]
+lncrna_repeat_overlap_category_20_class_merged<-lncrna_repeat_overlap_category_20_class_merged[more==F]
 
 overlaps_repeat_lncrna_num_table_20<-lncrna_repeat_overlap_category_20_class_merged[,.(number_of_bases=sum(intersect)),by=c("repeat_class","category","class")]
 
 
 #protein transposone overlaps - 20
-
-
-
 
 
 
@@ -1653,9 +1649,21 @@ overlaps_repeats_proteins_bases_table[,intersect_width:=inter_width_vector]
 
 
 
+#ovl lncrna and prot
+isoform_map_table_together3<-copy(isoform_map_table_together)
+setnames(isoform_map_table_together3,c("query_name","gene_id"))
+overlaps_prot_lncrna_within_table_merge<-merge(overlaps_prot_lncrna_within_table,isoform_map_table_together3,by="query_name")
 
 
+lncrna_repeat_overlap_category_20_class_merged2<-lncrna_repeat_overlap_category_20_class_merged[class=="overlapping_lncRNA"]
+length(unique(lncrna_repeat_overlap_category_20_class_merged2$ID))
 
+length(which(unique(lncrna_repeat_overlap_category_20_class_merged2$ID)%in%unique(overlaps_repeats_proteins_bases_table[attribute%in%overlaps_prot_lncrna_within_table_merge$attribute]$ID)))
+
+nrow()
+
+
+overlaps_repeats_proteins_bases_table
 #repeats exons overlap
 
 
@@ -1674,7 +1682,8 @@ prot_ex_total_length<-overlaps_repeats_protein_exons_table_20_prot[,.SD,.SDcols=
 
 prot_ex_total_length_merge<-merge(prot_ex_total_length,protein_exons_new_dt_total_width)
 prot_ex_total_length_merge[,perc_ex:=100*inter_width_sum_trans/total_ex_len]
-
+mean(prot_ex_total_length_merge$perc_ex)
+median(prot_ex_total_length_merge$perc_ex)
 
 
 
@@ -1742,7 +1751,7 @@ protein_overlap_introns_20_prot[,category:="intron"]
 protein_overlap_regions_20[,category:="proximity"]
 protein_overlap_regions_20_end[,category:="proximity"]
 
-protein_repeat_overlap_category_20<-rbind(protein_overlap_exons_20_prot,protein_overlap_introns_20_prot,protein_overlap_regions_20)
+protein_repeat_overlap_category_20<-rbind(protein_overlap_exons_20_prot,protein_overlap_introns_20_prot,protein_overlap_regions_20,protein_overlap_regions_20_end)
 
 
 protein_repeat_overlap_category_20[,class:="protein_coding_genes"]
@@ -1756,7 +1765,7 @@ protein_repeat_overlap_category_20_prot_merged<-merge(protein_repeat_overlap_cat
 protein_repeat_overlap_category_20_prot_merged[,more:=ifelse(nrow(.SD)>1,T,F),by=c("ID","attribute")]
 protein_repeat_overlap_category_20_prot_merged[,max_width_element:=ifelse(.SD==max(.SD),T,F),.SDcols="intersect",by=c("attribute","ID")]
 protein_repeat_overlap_category_20_prot_merged[max_width_element==T,more:=F]
-#protein_repeat_overlap_category_20_prot_merged<-protein_repeat_overlap_category_20_prot_merged[more==F]
+protein_repeat_overlap_category_20_prot_merged<-protein_repeat_overlap_category_20_prot_merged[more==F]
 
 overlaps_repeat_protein_num_table_20<-protein_repeat_overlap_category_20_prot_merged[,.(number_of_bases=sum(intersect)),by=c("class","category","repeat_class")]
 
@@ -1849,7 +1858,7 @@ repeats_plot_normalized_sum_bases_20<-ggplot(data=overlaps_repeat_together_num_t
   theme(axis.text=element_text(size=9))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("5' region","Exons","Introns")) +
+  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("Proximity","Exons","Introns")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
   theme(strip.text.y = element_text(size = 7))
   
@@ -1897,7 +1906,7 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   theme(axis.text=element_text(size=10.3))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("5' regija","egzon","intron")) +
+  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("Proximity","Exon","Intron")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) 
 
   
