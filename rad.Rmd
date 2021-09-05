@@ -19,6 +19,9 @@ library(tidyr)
 library(Gviz)
 library(ggpubr)
 library(cowplot)
+library(ggsci)
+library(RColorBrewer)
+library(wesanderson)
 setwd("F:/1_script/rad")
 
 all_rnaspades<-fread("all_rnaspades_trans.txt")
@@ -260,14 +263,23 @@ lengths_table[,filtering:=factor(filtering,levels=rev(c("All transcripts","rRNA 
 
 
 lengths_plot<-ggplot(data=lengths_table,aes(x=filtering,y=number_of_lncRNA_candidates,fill=Transcriptome)) +
-  geom_bar(position="dodge",stat = "identity", width=0.65,col="black") +
+  geom_bar(position="dodge",stat = "identity", width=0.65,col="black",alpha=0.8) +
   theme_bw() +
   facet_grid(row=vars(Transcriptome)) +
-  theme(legend.position = "top") +
+  theme(legend.position = "none") +
   theme(axis.title.y = element_blank()) +
   coord_flip() +
   ylab("Number of transcripts") +
-  scale_x_discrete(labels=c("Protein-coding exons overlap filtering","Exon number filtering","Bacterial lncRNA filtering","Percent identity filtering","FEELnc filtering","HMMER filtering","DIAMOND filtering","ORF filtering","Length filtering","rRNA filtering","All transcripts"))
+  scale_x_discrete(labels=c("Protein-coding exons overlap filtering","Exon number filtering","Bacterial lncRNA filtering","Percent identity filtering","FEELnc filtering","HMMER filtering","DIAMOND filtering","ORF filtering","Length filtering","rRNA filtering","All transcripts")) +
+   scale_fill_locuszoom() +
+  theme(axis.text = element_text(size=4)) +
+  theme(axis.title.x = element_text(size=5.5)) +
+  theme(strip.text = element_text(size=5))
+
+
+
+
+
 lengths_plot
 ggsave(lengths_plot,filename = "lengths_plot.png",width = 7,height = 5)
 
@@ -363,11 +375,13 @@ overlap_table[,length_frac:=100*(intersect_widths/max_width)]
 #intersect plot
 
 perc_plot<-ggplot(data=overlap_table,aes(x=length_frac))+
-  geom_histogram(fill="indianred1",col="black",binwidth = 5) +
+  geom_histogram(fill="chocolate1",col="black",binwidth = 5,alpha=0.85) +
   theme_bw() +
   xlab("Intersect percentage") +
-  ylab("Number of rnaSPades and Trinity gene pairs") +
-  theme(axis.title.y = element_text(size=8))
+  ylab("Number of gene pairs") +
+  theme(axis.title.x = element_text(size=5.5)) +
+  theme(axis.title.y = element_text(size=5.5)) +
+  theme(axis.text = element_text(size=4))
 
 perc_plot
 
@@ -562,31 +576,34 @@ write.table(lncrna_numbers_table,file="lncrna_numbers_table.txt",row.names = F,q
 lncrna_numbers_table_plot<-lncrna_numbers_table[category%in%c("RNASpades genes","Trinity genes","Longer RNASpades genes with more than 20% overlap","Shorter RNASpades genes with more than 20% overlap","Longer Trinity genes with more than 20% overlap","Shorter Trinity genes with more than 20% overlap","Longer RNASpades genes with less than 20% overlap","Shorter RNASpades genes with less than 20% overlap","Longer Trinity genes with less than 20% overlap","Shorter Trinity genes with less than 20% overlap","RNASpades genes without overlaps","Trinity genes without overlap","Final RNASpades genes","Final Trinity genes")]
 
 lncrna_numbers_table_plot[,category:=c("All genes","All genes","Longer genes (>= 20% overlap)","Longer genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Longer genes (< 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Shorter genes (< 20% overlap)","Unique genes","Unique genes","Final genes","Final genes")]
-lncrna_numbers_table_plot[,category:=factor(category,levels = rev(c("All genes","Unique genes","Longer genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Final genes")))]
+lncrna_numbers_table_plot[,category:=factor(category,levels = c("All genes","Unique genes","Longer genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Final genes"))]
 lncrna_numbers_table_plot[,Transcriptome:=rep(c("rnaSPades","Trinity"),7)]
 
 plot_consensus<-ggplot(data=lncrna_numbers_table_plot,aes(x=category,y=number,fill=Transcriptome)) +
-  geom_bar(stat="identity",position = "stack",color="black",width = 0.5) +
+  geom_bar(stat="identity",position = "stack",color="black",width = 0.5,alpha=0.8) +
   theme_bw() +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_text(size=8,angle=45,hjust=0.9)) +
+  theme(axis.text.x = element_text(size=4,angle=45,hjust=0.9)) +
+  theme(axis.text.y = element_text(size=4)) +
   ylab("Number of genes") +
-  theme(axis.title.y = element_text(size=8)) +
-  theme(axis.title.x = element_blank()) 
+  theme(axis.title.y = element_text(size=6)) +
+  theme(axis.title.x = element_blank()) +
+  scale_fill_locuszoom()
+  
 
 ggsave(plot_consensus,filename = "plot_consensus.png",height = 4,width = 6)
 
 
 figure_one<-ggdraw() +
-  draw_plot(lengths_plot, x = 0, y = 0.15, width = .5, height = .7) +
+  draw_plot(lengths_plot, x = 0, y = 0.15, width = .5, height = .62) +
   draw_plot(perc_plot, x = 0.54, y = 0.47, width = .35, height = .3) +
   draw_plot(plot_consensus, x = 0.54, y = 0.11, width = 0.35, height = 0.35) +
-  draw_plot_label(label = c("A", "B", "C"), size = 15,
-                  x = c(0, 0.52, 0.52), y = c(0.8, 0.8, 0.5))
+  draw_plot_label(label = c("A", "B", "C"), size = 7,
+                  x = c(0.05, 0.55, 0.55), y = c(0.8, 0.8, 0.5))
 
 figure_one
 
-ggsave(figure_one,filename = "figure_one.jpg",height = 10,width = 13)
+ggsave(figure_one,filename = "figure_one.tiff",height = 12,width = 16.99,units = "cm",dpi=320)
 #mapping analysis
 
 
@@ -628,14 +645,16 @@ prot_transcript_for_isoforms_table_num<-prot_transcript_for_isoforms_table_num[n
 prot_transcript_for_isoforms_table_num<-rbind(prot_transcript_for_isoforms_table_num,data.table(number_of_isoforms=">9",N=sum(prot_transcript_for_isoforms_table_num_copy[number_of_isoforms>9]$N),category="protein_coding_genes",proportion=sum(prot_transcript_for_isoforms_table_num_copy[number_of_isoforms>9]$proportion)))
 isoforms_table_together_num<-rbind(isoforms_number_together_lncrna_num,prot_transcript_for_isoforms_table_num)
 isoforms_plot_proportions<-ggplot(data=isoforms_table_together_num,aes(x=number_of_isoforms,y=proportion,fill=category)) +
-  geom_bar(col="black",position="dodge",stat="identity",width=0.5,alpha=0.9) +
+  geom_bar(col="black",position="dodge",stat="identity",width=0.5,alpha=0.8) +
   theme_bw() +
   xlab("Number of isoforms per gene") +
   ylab("Percentage of genes") +
   scale_x_discrete(limits=c(1:9,">9")) +
   theme(legend.position = "none") +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
-  theme(legend.title = element_text(size=9,face="bold")) 
+     scale_fill_manual(values=c("indianred2","steelblue"),name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) + 
+  theme(legend.title = element_text(size=9,face="bold")) +
+    theme(axis.text = element_text(size=4)) +
+   theme(axis.title = element_text(size=6))
 isoforms_plot_proportions
 ggsave(isoforms_plot_proportions,file="isoforms_plot_proportions.png",width = 6,height = 4.2)
 #exons and introns
@@ -729,16 +748,20 @@ protein_exons_table_num<-rbind(protein_exons_table_num,data.table(number_of_exon
 exon_number_table_together_num<-rbind(number_of_exons_table_lncrna_num,protein_exons_table_num)
 
 exons_plot_proportion<-ggplot(data=exon_number_table_together_num,aes(x=number_of_exons,y=proportion,fill=category)) +
-  geom_bar(col="black",position="dodge",stat="identity",width=0.5,alpha=0.9) +
+  geom_bar(col="black",position="dodge",stat="identity",width=0.5,alpha=0.8) +
   theme_bw() +
   xlab("Number of exons per gene") +
   ylab("Percentage of genes") +
   theme(legend.position = "none") +
   scale_x_discrete(limits=c(2:9,">9"),drop=F) +
-  scale_fill_manual(values=c("indianred2","steelblue"), name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
-  theme(legend.title = element_text(size=9,face="bold")) 
+    scale_fill_manual(values=c("indianred2","steelblue"),name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
+  theme(legend.title = element_text(size=9,face="bold"))  +
+  theme(axis.text = element_text(size=4)) +
+   theme(axis.title = element_text(size=6)) +
+  coord_cartesian(ylim=c(0,100))
+  
 exons_plot_proportion
-ggsave(exons_plot_proportion,file="exons_plot_proportion.png",width=6, height = 4.2)
+ggsave(exons_plot_proportion,file="exons_plot_proportion.png",width=6, height = 4.2) 
 
 
 
@@ -803,17 +826,20 @@ element_width_table[,feature:=factor(feature,levels = c("Exons","Introns","Trans
 
 features_comparison<-list(c("lncRNA","protein_coding_genes"))
 element_length_boxplot<-ggplot(data=element_width_table,aes(x=category,y=width,fill=category)) +
-  geom_boxplot(alpha=0.9) +
+  geom_boxplot(alpha=0.8,outlier.size = 0.2) +
   facet_grid(.~feature) +
   scale_y_log10() +
   theme_bw() +
-  scale_fill_manual(values=c("indianred2","steelblue"),name="Category",label=c("LncRNA-coding genes","Protein-coding genes")) +
-  theme(legend.position = "bottom") +
+     scale_fill_manual(values=c("indianred2","steelblue"),name = "Category", labels=c("lncRNA-coding genes","Protein-coding genes")) +
+  theme(legend.position = "none") +
   theme(legend.title = element_text(size=9,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
   ylab("Length / bp (log10 scaled)")  +
-  stat_compare_means(comparisons = features_comparison,label = "p.signif")
+  stat_compare_means(comparisons = features_comparison,label = "p.signif",size=2,vjust=0.2) +
+  theme(axis.text.y = element_text(size=4)) +
+ theme(axis.title.y = element_text(size=5)) +
+  theme(strip.text = element_text(size=5)) 
 element_length_boxplot 
 ggsave(element_length_boxplot,file="element_length_boxplot.png",width=6,height = 4) 
 
@@ -822,12 +848,12 @@ figure_two<-ggdraw() +
   draw_plot(isoforms_plot_proportions, x = 0.109, y = 0.5, width = .36, height = .38) +
   draw_plot(exons_plot_proportion, x = 0.5, y = 0.5, width = .36, height = .38) +
   draw_plot(element_length_boxplot, x = 0.163, y = 0.02, width = 0.65, height = 0.45) +
-  draw_plot_label(label = c("A", "B", "C"), size = 15,
+  draw_plot_label(label = c("A", "B", "C"), size = 7,
                   x = c(0.1, 0.52, 0.18), y = c(0.9, 0.9, 0.5))
 
 figure_two
 
-ggsave(figure_two,filename = "figure_two.jpg",height = 10,width = 13)
+ggsave(figure_two,filename = "figure_two.tiff",height = 12,width = 16.99,units="cm",dpi=320)
 
 
 #splice sites
@@ -928,11 +954,13 @@ number_of_lncrna_classes_plot<-ggplot(data=number_of_lncrna_classes,aes(x=class,
           geom_bar(color="black",width=0.5,stat="identity") +
   theme_bw() +
   theme(legend.position = "none") + 
-    scale_fill_hp(discrete = TRUE, option = "NewtScamander")  +
+      scale_fill_brewer(palette = "Set2", name = "Class",labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA"))+  
   theme(axis.title.x=element_blank()) +
   ylab("Number of genes") +
-   theme(axis.text.x = element_text(angle=45,hjust=0.9)) +
-  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA"))
+     theme(axis.text.x = element_text(angle=45,hjust=0.9,size=4)) +
+  theme(axis.text.y = element_text(size=4)) +
+  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA")) +
+    theme(axis.title=element_text(size=5)) 
 
   number_of_lncrna_classes_plot
   
@@ -979,18 +1007,20 @@ class_together_table[,class:=factor(class,levels = c("intronic_lncRNA","intergen
 
 class_comparison<-list(c("intronic_lncRNA","intergenic_lncRNA"),c("intronic_lncRNA","overlapping_lncRNA"),c("intergenic_lncRNA","overlapping_lncRNA"))
 class_lengths_plot<-ggplot(data=class_together_table,aes(x=class,y=element_length,fill=class)) +
-  geom_boxplot(alpha=0.8) +
+  geom_boxplot(alpha=0.8,outlier.size = 0.2) +
   scale_y_log10() +
   theme_bw() +
   facet_grid(.~feature) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "none") +
   theme(legend.title = element_text(size=9,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
-  theme(axis.title.y   = element_text(size=9)) +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Class",labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA")) +
+  scale_fill_brewer(palette = "Set2", name = "Class",labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA"))+
   ylab("Length / bp (log10 scaled)")  +
-  stat_compare_means(comparisons = class_comparison,label = "p.signif")
+  stat_compare_means(comparisons = class_comparison,label = "p.signif",size=2,vjust=0.2) +
+  theme(strip.text = element_text(size=5)) +
+    theme(axis.title=element_text(size=5))  +
+  theme(axis.text.y=element_text(size=4))
   
 
 
@@ -1010,10 +1040,12 @@ class_genes_table_sum_width_plot<-ggplot(data=class_genes_table_sum_width,aes(x=
           geom_bar(color="black",width=0.5,stat="identity") +
   theme_bw() +
   theme(legend.position = "none") + 
-    scale_fill_hp(discrete = TRUE, option = "NewtScamander")  +
+    scale_fill_brewer(palette = "Set2") +
   theme(axis.title.x=element_blank()) +
   ylab("Total length / kb") +
-   theme(axis.text.x = element_text(angle=45,hjust=0.9)) +
+   theme(axis.text.x = element_text(angle=45,hjust=0.9,size=4)) +
+  theme(axis.text.y = element_text(size=4)) +
+  theme(axis.title=element_text(size=5)) +
   scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA"))
 
   class_genes_table_sum_width_plot
@@ -1045,15 +1077,15 @@ kruskal.test(x = c(class_transcripts_table[class=="intronic_lncRNA"]$element_len
 
 
 figure_three<-ggdraw() +
-  draw_plot(number_of_lncrna_classes_plot, x = 0.109, y = 0.5, width = .36, height = .38) +
-  draw_plot(class_genes_table_sum_width_plot, x = 0.5, y = 0.5, width = .36, height = .38) +
-  draw_plot(class_lengths_plot, x = 0.13, y = 0.03, width = 0.7, height = 0.45) +
-  draw_plot_label(label = c("A", "B", "C"), size = 15,
-                  x = c(0.1, 0.5, 0.15), y = c(0.9, 0.9, 0.5))
+  draw_plot(number_of_lncrna_classes_plot, x = 0.162, y = 0.47, width = .27, height = .36) +
+  draw_plot(class_genes_table_sum_width_plot, x = 0.45, y = 0.47, width = .27, height = .36) +
+  draw_plot(class_lengths_plot, x = 0.13, y = 0.03, width = 0.6, height = 0.45) +
+  draw_plot_label(label = c("A", "B", "C"), size = 7,
+                  x = c(0.15, 0.45, 0.15), y = c(0.85, 0.85, 0.5))
 
 figure_three
 
-ggsave(figure_three,filename = "figure_three.jpg",height = 10,width = 10)
+ggsave(figure_three,filename = "figure_three.tiff",height = 12,width = 16.99,units="cm",dpi=320)
 
 
 
@@ -1431,11 +1463,13 @@ perc_within_trans<-ggplot(data=overlaps_repeat_together_num_table,aes(x=class,y=
   theme_bw()  +
   theme(legend.position = "none") +
   coord_cartesian(ylim=c(0,100)) +
-       theme(axis.text.x = element_text(angle=45,hjust=0.9)) +
-  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA","Protein-coding genes")) +
+          theme(axis.text.x = element_text(angle=45,hjust=0.9,size=4)) +
+  theme(axis.text.y = element_text(size=4)) +
+  scale_x_discrete(labels=c("Intronic lncRNAs","Intergenic lncRNAs","Overlapping lncRNAs","Protein-coding genes")) +
     theme(axis.title.x = element_blank()) +
   ylab("Percentage of genes") +
-  theme(axis.title.y = element_text(size=8))
+  theme(axis.title.y = element_text(size=6)) +
+  scale_fill_manual(values=c(brewer.pal(n=3,name = "Set2"),"steelblue3"))
 
 
 perc_region_trans<-ggplot(data=overlaps_repeat_together_num_table,aes(x=class,y=percentage_genes_region,fill=class)) +
@@ -1444,11 +1478,13 @@ perc_region_trans<-ggplot(data=overlaps_repeat_together_num_table,aes(x=class,y=
   theme(legend.position = "none") +
    coord_cartesian(ylim=c(0,100)) +
   scale_y_continuous(breaks=c(0,25,50,75,100)) +
-     theme(axis.text.x = element_text(angle=45,hjust=0.9)) +
-  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA","Protein-coding genes")) +
+     theme(axis.text.x = element_text(angle=45,hjust=0.9,size=4)) +
+  theme(axis.text.y = element_text(size=4)) +
+  scale_x_discrete(labels=c("Intronic lncRNAs","Intergenic lncRNAs","Overlapping lncRNAs","Protein-coding genes")) +
   theme(axis.title.x = element_blank()) +
   ylab("Percentage of genes") +
-   theme(axis.title.y = element_text(size=8))
+   theme(axis.title.y = element_text(size=6)) +
+   scale_fill_manual(values=c(brewer.pal(n=3,name = "Set2"),"steelblue3"))
   
 
 
@@ -1844,9 +1880,9 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_codin
 
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,class:=factor(class,levels = c("intergenic_lncRNA","intronic_lncRNA","overlapping_lncRNA","protein_coding_genes"))]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA",class:="Intergenic lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA",class:="Intronic lncRNA"]
-overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA",class:="Overlapping lncRNA"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intergenic_lncRNA",class:="Intergenic lncRNAs"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="intronic_lncRNA",class:="Intronic lncRNAs"]
+overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="overlapping_lncRNA",class:="Overlapping lncRNAs"]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[class=="protein_coding_genes",class:="Protein-coding genes"]
 overlaps_repeat_together_num_table_normalized_sum_bases_20[,repeat_class:=factor(repeat_class,levels = c("Unknown","LINE","LTR","DNA"))]
 overlaps_repeat_together_num_table_normalized_sum_bases_20<-overlaps_repeat_together_num_table_normalized_sum_bases_20[is.na(repeat_class)==F]
@@ -1854,20 +1890,20 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20[,category:=factor(cat
 
 
 repeats_plot_normalized_sum_bases_20_rel<-ggplot(data=overlaps_repeat_together_num_table_normalized_sum_bases_20,aes(x=repeat_class,y=number_of_bases_rel,fill=category)) +
-  geom_bar(position=position_dodge(preserve = "single"),stat = "identity", width=0.7,alpha=0.8) +
+  geom_bar(position=position_dodge(preserve = "single"),stat = "identity", width=0.7,alpha=0.9) +
   theme_bw() +
   facet_grid(row=vars(class)) +
-  theme(legend.position = "bottom") + 
+  theme(legend.position = "none") + 
   #theme(axis.text.x = element_text(angle = 50, hjust = 1,size=5)) +
   xlab("Transposone class") +
   ylab("Normalised total length") +
   labs(fill = "lncRNA element",size=5) +
-  theme(axis.title=element_text(size=10)) +
-  theme(axis.text=element_text(size=9))+
+  theme(axis.title=element_text(size=6)) +
+  theme(axis.text=element_text(size=4))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("Proximity","Exons","Introns")) +
-  theme(strip.text.y = element_text(size = 7)) 
+ scale_fill_manual(values = wes_palette("Rushmore1", n = 3),name="Element",labels=c("Proximity","Exon","Intron")) +
+  theme(strip.text.y = element_text(size = 4)) 
   
 repeats_plot_normalized_sum_bases_20_rel
 
@@ -1976,7 +2012,7 @@ repeats_plot_normalized_sum_bases_20_2_rel<-ggplot(data=overlaps_repeat_together
   theme(axis.text=element_text(size=10.3))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("Proximity","Exon","Intron")) +
+  scale_fill_manual(values = wes_palette("Rushmore1", n = 3),name="Element",labels=c("Proximity","Exon","Intron")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) 
 
   
@@ -2010,20 +2046,21 @@ overlaps_repeat_together_num_table_normalized_sum_bases_20_2[class=="Protein-cod
 
 overlaps_repeat_together_num_table_normalized_sum_bases_20_2[,category:=factor(category,levels = c("proximity","exon","intron"))]
 repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num_table_normalized_sum_bases_20_2,aes(x=class,y=number_of_bases,fill=category)) +
-  geom_bar(position="stack",stat = "identity",col="black",alpha=0.8,width=0.8) +
+  geom_bar(position="stack",stat = "identity",col="black",alpha=0.9,width=0.8) +
   theme_bw() +
   theme(legend.position = "none") + 
   #theme(axis.text.x = element_text(angle = 50, hjust = 1,size=5)) +
   xlab("Gene class") +
   ylab("Normalised total length") +
   labs(fill = "lncRNA element",size=5) +
-  theme(axis.title=element_text(size=11)) +
-  theme(axis.text.x=element_text(size=8,angle=45,hjust=0.9))+
+  theme(axis.title=element_text(size=6)) +
+  theme(axis.text.x=element_text(size=4,angle=45,hjust=0.9))+
   theme(legend.title = element_text(size=10,face="bold")) +
   theme(legend.text = element_text(size=10)) +
-  scale_fill_got(discrete = T,option="Martell",name="Element",labels=c("Proximity","Exon","Intron")) +
+  scale_fill_manual(values = wes_palette("Rushmore1", n = 3),name="Element",labels=c("Proximity","Exon","Intron")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
-    scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA","Protein-coding genes"))
+    scale_x_discrete(labels=c("Intronic lncRNAs","Intergenic lncRNAs","Overlapping lncRNAs","Protein-coding genes")) +
+    theme(axis.text.y = element_text(size=4)) 
 
   
 
@@ -2040,13 +2077,13 @@ figure_four<-ggdraw() +
   draw_plot(perc_region_trans, x = .25, y = 0.48, width = .2, height = .38) +
   draw_plot(repeats_plot_normalized_sum_bases_20_2, x = 0.05, y = 0.05, width = 0.35, height = 0.4) +
   draw_plot(repeats_plot_normalized_sum_bases_20_rel, x = 0.5, y = 0.2, width = 0.5, height = 0.6) +
-  draw_plot_label(label = c("A", "B", "C","D"), size = 15,
-                  x = c(0.035, 0.27, 0.05,0.5), y = c(0.9, 0.9, 0.47,0.83))
+  draw_plot_label(label = c("A", "B", "C","D"), size = 7,
+                  x = c(0.035, 0.27, 0.05,0.5), y = c(0.88, 0.88, 0.47,0.83))
 
 
 figure_four
 
-ggsave(figure_four,filename = "figure_four.jpg",height = 10,width = 13)
+ggsave(figure_four,filename = "figure_four.tiff",height = 13,width = 16.99,units = "cm",dpi = 320)
 
 
 
@@ -2077,7 +2114,9 @@ numb_gene_in_genomes_plot<-ggplot(data=numb_gene_in_genomes_table,aes(x=number_o
   geom_bar(position = "dodge",stat="identity",width=0.6,col="black", fill="indianred1") +
   theme_bw() +
   xlab("Number of species hit by a lncRNA") +
-  ylab("Number of lncRNA")
+  ylab("Number of lncRNAs") +
+  theme(axis.title = element_text(size=5)) +
+  theme(axis.text = element_text(size=4))
 
 numb_gene_in_genomes_plot
 
@@ -2124,17 +2163,17 @@ species_ordered3<-str_replace(species_ordered3,"_"," ")
 blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species,aes(y=species,x=qseqid,fill=sumqperclen)) +
   geom_tile(alpha=1.2) +
   scale_fill_hp(house = "HermioneGranger",name="Percentage of lncRNA aligned\n to subject sequence",na.value="white",direction = -1) +
-  xlab("lncRNA") + 
+  theme(axis.title.x=element_blank()) +
   theme(legend.position="top") +
-  theme(legend.key.size = unit(0.3, "cm"),
-        legend.key.width = unit(0.5,"cm")) +
-  theme(legend.title = element_text( size = 9, face="bold")) +
+  theme(legend.key.size = unit(0.1, "cm"),
+        legend.key.width = unit(0.3,"cm"),
+        legend.text = element_text(size=4)) +
+  theme(legend.title = element_text( size = 5, face="bold")) +
   theme(axis.title.y = element_blank()) +
-  theme(axis.title.x = element_text(size=9.2)) +
   theme(axis.ticks.x=element_blank()) +
   theme(axis.text.x=element_blank())  +
   scale_y_discrete(limits=rev(species_ordered2),labels=rev(species_ordered3)) +
-  theme(axis.text.y = element_text(size=9,colour = rev(label_cols))) 
+  theme(axis.text.y = element_text(size=4,colour = rev(label_cols))) 
 
 
 
@@ -2146,13 +2185,13 @@ ggsave(blast_heatmap_plot,file="blast_heatmap_plot.png",width = 7.6,height = 8)
 figure_five<-ggdraw() +
   draw_plot(numb_gene_in_genomes_plot, x = 0, y = 0.42, width = .35, height = .38) +
   draw_plot(blast_heatmap_plot, x = .4, y = 0.35, width = .5, height = .6) +
-  draw_plot_label(label = c("A", "B","C"), size = 15,
+  draw_plot_label(label = c("A", "B","C"), size = 7,
                   x = c(0.02, 0.46,0.12), y = c(0.8, 0.94,0.32))
 
 
 figure_five
 
-ggsave(figure_five,filename = "figure_five.jpg",height = 11,width = 13)
+ggsave(figure_five,filename = "figure_five.tiff",height = 12,width = 16.99,units  ="cm",dpi=320)
 
 #findig candidatess for multiple alignment
 
@@ -2307,15 +2346,16 @@ read_counts_table_lncrna_class[class=="overlapping_lncRNA",class:="Overlapping l
 
 fpkm_class_comp<-list(c("Intronic lncRNA","Intergenic lncRNA"),c("Intronic lncRNA","Overlapping lncRNA"),c("Intergenic lncRNA","Overlapping lncRNA"))
 fpkm_lncrna_class_plot<-ggplot(data=read_counts_table_lncrna_class,aes(x=class,y=FPKM,fill=class)) +
-  geom_boxplot(width=0.45) +
+  geom_boxplot(width=0.45,outlier.size=0.5) +
   theme_bw() +
   scale_y_log10() +
-  scale_fill_hp(discrete = T,option = "NewtScamander") +
+  scale_fill_brewer(palette = "Set2") +
   theme(legend.position = "none") +
   theme(axis.title.x=element_blank()) +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
-  scale_x_discrete(labels=c("Intronic lncRNA","Intergenic lncRNA","Overlapping lncRNA")) +
-  stat_compare_means(comparisons = fpkm_class_comp,label="p.signif")
+  theme(axis.text = element_text(size=4)) +
+  theme(axis.title=element_text(size=5)) +
+  scale_x_discrete(labels=c("Intronic lncRNAs","Intergenic lncRNAs","Overlapping lncRNAs")) +
+  stat_compare_means(comparisons = fpkm_class_comp,label="p.signif",size=2.2)
 
 fpkm_lncrna_class_plot
 ggsave(fpkm_lncrna_class_plot,file="fpkm_lncrna_class_plot.png",width = 6,height = 5)
@@ -2350,15 +2390,16 @@ lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep[,log_FPKM:=l
 
 options(scipen=1000)
 fpkm_lncrna_repeats_plot<-ggplot(data=lncrna_repeat_overlap_category_class_merged_copy_merged_with_no_rep,aes(x=repeat_class,y=FPKM,fill=element)) +
-  geom_boxplot(alpha=0.8) +
+  geom_boxplot(alpha=0.8,outlier.size=0.5) +
   theme_bw() +
   scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
-  scale_fill_got(discrete = T,option = "martell",na.value="grey",labels=c("egzon","intron","neodređeno"),direction = -1) +
-  xlab("Razred transpozona") +
+  theme(axis.text = element_text(size=4)) +
+  theme(axis.title=element_text(size=5)) +
+  scale_fill_manual(values = wes_palette("Rushmore1", n = 3),name="Element",labels=c("Proximity","Exon","Intron"),na.value="grey") +
+  xlab("TE class") +
   #theme(axis.text.x=element_blank()) +
   theme(legend.position = "none") +
-  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","Bez transpozona"))
+  scale_x_discrete(labels=c("Unknown","DNA","LINE","LTR","No transposones"))
  
 
 
@@ -2449,17 +2490,19 @@ read_counts_table_longer_prot_merged<-merge(read_counts_table_longer_prot,prot_c
 read_counts_table_longer_prot_merged[,lncrna_class:=factor(lncrna_class,levels = c("intronic","intergenic_1kb","overlapping","no_lncRNA"))]
 
 options(scipen=1000)
-fpkm_prot_comp<-list(c("no_lncRNA","intergenic_1kb"),c("no_lncRNA","intronic"),c("no_lncRNA","overlapping"))
+fpkm_prot_comp<-list(c("no_lncRNA","intronic"),c("no_lncRNA","intergenic_1kb"),c("no_lncRNA","overlapping"))
 fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_class,y=FPKM,fill=lncrna_class)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.size = 0.5) +
   theme_bw() +
   scale_y_log10() +
-  theme(legend.title = element_text(size=9,face="bold")) +
+  theme(legend.title = element_text(size=6,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
-  scale_fill_hp(discrete = TRUE, option = "NewtScamander", name = "Category",labels=c("Proteins with\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
-  theme(legend.text = element_text(size=9)) +
-  stat_compare_means(comparisons = fpkm_prot_comp,label="p.signif",symnum.args = list(cutpoints = c(0, 1E-15, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns")))
+  scale_fill_manual(values=c(brewer.pal(n=3,"Set2")[1:3],"steelblue"),name = "Category",labels=c("Proteins containing\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
+  theme(legend.text = element_text(size=5)) +
+  stat_compare_means(comparisons = fpkm_prot_comp,label="p.signif",symnum.args = list(cutpoints = c(0, 1E-15, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns")),size=2.2) +
+  theme(axis.title.y = element_text(size=5)) +
+  theme(axis.text = element_text(size=4))
 
 fpkm_prot_plot
 ggsave(fpkm_prot_plot,file="fpkm_prot_plot.png",width = 7,height = 4)
@@ -2478,15 +2521,15 @@ wilcox.test(read_counts_table_longer_prot_merged[lncrna_class=="overlapping"]$FP
 read_counts_table_longer_prot_merged
 
 figure_six<-ggdraw() +
-  draw_plot(fpkm_lncrna_class_plot, x = 0, y = 0.5, width = .4, height = .4) +
-  draw_plot(fpkm_lncrna_repeats_plot, x = 0, y = 0.05, width = .4, height = .4) +
-  draw_plot(fpkm_prot_plot, x = .45, y = 0.3, width = .45, height = .45) +
-  draw_plot_label(label = c("A", "B","C"), size = 15,
+  draw_plot(fpkm_lncrna_class_plot, x = 0, y = 0.5, width = .42, height = .4) +
+  draw_plot(fpkm_lncrna_repeats_plot, x = 0, y = 0.05, width = .42, height = .42) +
+  draw_plot(fpkm_prot_plot, x = .45, y = 0.25, width = .5, height = .5) +
+  draw_plot_label(label = c("A", "B","C"), size = 7,
                   x = c(0.02, 0.02,0.49), y = c(0.915, 0.48,0.78))
 
 figure_six
 
-ggsave(figure_six,filename = "figure_six.jpg",height = 10,width = 12)
+ggsave(figure_six,filename = "figure_six.tiff",height = 12,width = 16.99,units = "cm",dpi=320)
 
 ```
 
@@ -3103,8 +3146,9 @@ num_f_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_f_merged_N,aes(x=GO_term
   xlab("GO term") +
   ylab("Number of protein-coding genes") +
   coord_flip() +
-  theme(axis.text.y = element_text(size=8)) +
-  theme(axis.title=element_text(size=8))
+  theme(axis.text = element_text(size=3.5)) +
+  theme(axis.title=element_text(size=4.1)) +
+  theme(axis.title.y = element_blank())
 
 
 num_f_cons
@@ -3135,8 +3179,9 @@ num_p_cons<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_N,aes(x=GO_term
   xlab("GO term") +
   ylab("Number of protein-coding genes") +
     coord_flip() +
-  theme(axis.text.y = element_text(size=8)) +
-  theme(axis.title=element_text(size=8))
+  theme(axis.text = element_text(size=3.5)) +
+  theme(axis.title=element_text(size=4.1)) +
+   theme(axis.title.y = element_blank())
 
 num_p_cons
 ggsave(num_p_cons,filename = "num_p_cons.png",height = 6,width = 9)
@@ -3255,11 +3300,13 @@ num_f_cons_class
 
 ggsave(num_f_cons_class,filename = "num_f_cons_class.png",height = 6,width = 9)
 
-
+prot_overlaps_20kb_dt_GO_longer_p_merged_class_N[class=="intronic_lncRNA",class:="Intronic lncRNsA"]
+prot_overlaps_20kb_dt_GO_longer_p_merged_class_N[class=="intergenic_lncRNA",class:="Intergenic lncRNAs"]
+prot_overlaps_20kb_dt_GO_longer_p_merged_class_N[class=="overlapping_lncRNA",class:="Overlapping lncRNAs"]
 num_p_cons_class<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_class_N,aes(x=GO_term,y=N,fill=cons_cat)) +
   geom_bar(stat="identity",color="black",alpha=0.7,position="stack") +
   theme_bw() +
-  theme(legend.position = "top") +
+  theme(legend.position = "none") +
   facet_grid(rows=vars(class)) +
   scale_fill_brewer(palette="Spectral",name="lncRNA category") +
   xlab("GO term") +
@@ -3268,8 +3315,10 @@ num_p_cons_class<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_class_N,a
     xlab("GO term") +
   ylab("Number of protein-coding genes") +
     coord_flip() +
-  theme(axis.text.y = element_text(size=8)) +
-  theme(axis.title=element_text(size=8))
+  theme(axis.text= element_text(size=4)) +
+  theme(axis.title=element_text(size=6)) +
+  theme(axis.title.y = element_blank()) +
+  theme(strip.text = element_text(size=5))
 
 
 num_p_cons_class
@@ -3288,15 +3337,16 @@ colnames(read_counts_table_longer_prot2)[1]<-"attribute"
 prot_overlaps_20kb_dt_GO_longer_p_merged2_exp<-merge(prot_overlaps_20kb_dt_GO_longer_p_merged2,read_counts_table_longer_prot2,by="attribute")
 
 go_expression_plot<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged2_exp,aes(x=GO_term,y=FPKM,fill=GO_term)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.size = 0.5) +
   theme_bw() +
   theme(legend.position = "none") +
   scale_y_log10() +
   coord_flip() +
-    theme(axis.text.y = element_text(size=8)) +
-  theme(axis.title=element_text(size=8)) +
+    theme(axis.text= element_text(size=4)) +
+  theme(axis.title=element_text(size=6)) +
   xlab("GO term") +
-  scale_fill_npg()
+  scale_fill_npg() +
+  theme(axis.title.y = element_blank())
 
 go_expression_plot
 
@@ -3304,22 +3354,19 @@ ggsave(go_expression_plot,filename = "go_expression_plot.jpg",height = 4,width =
 
 
 
-figure_seven
-
-ggsave(figure_seven,filename = "figure_seven.jpg",height = 10,width = 10)
 
 figure_seven<-ggdraw() +
-  draw_plot(num_f_cons, x = 0, y = 0.48, width = .2, height = .38) +
-  draw_plot(num_p_cons, x = .21, y = 0.48, width = .255, height = .38) +
-  draw_plot(go_expression_plot, x = 0.05, y = 0.05, width = 0.35, height = 0.4) +
-  draw_plot(num_p_cons_class, x = 0.5, y = 0.15, width = 0.5, height = 0.7) +
-  draw_plot_label(label = c("A", "B", "D","C"), size = 15,
-                  x = c(0.035, 0.27, 0.05,0.5), y = c(0.9, 0.9, 0.47,0.83))
+  draw_plot(num_f_cons, x = 0.01, y = 0.48, width = .2, height = .4) +
+  draw_plot(num_p_cons, x = .2, y = 0.48, width = .26, height = .4) +
+  draw_plot(go_expression_plot, x = 0, y = 0.05, width = 0.42, height = 0.4) +
+  draw_plot(num_p_cons_class, x = 0.48, y = 0.15, width = 0.5, height = 0.6) +
+  draw_plot_label(label = c("A", "B", "D","C"), size =7,
+                  x = c(0.01, 0.24, 0.05,0.5), y = c(0.89, 0.89, 0.47,0.76))
 
 
 figure_seven
 
-ggsave(figure_seven,filename = "figure_seven.jpg",height = 10,width = 15)
+ggsave(figure_seven,filename = "figure_seven.tiff",height = 12,width = 16.99,dpi=320,units = "cm")
 ```
 
 ```{r}
