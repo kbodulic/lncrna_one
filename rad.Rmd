@@ -22,7 +22,7 @@ library(cowplot)
 library(ggsci)
 library(RColorBrewer)
 library(wesanderson)
-setwd("F:/1_script/rad")
+setwd("F:/rad")
 
 all_rnaspades<-fread("all_rnaspades_trans.txt")
 all_trinity<-fread("all_trinity_trans.txt")
@@ -68,8 +68,8 @@ orf_table_transdecoder_rnaspades_maxlen<-orf_table_transdecoder_rnaspades[,.(max
 orf_table_transdecoder_trinity_maxlen<-orf_table_transdecoder_trinity[,.(max_length=max(feature_length)),by=transcript]
 
 
-less_than_150_orfs_rnaspades<-unique(orf_table_transdecoder_rnaspades_maxlen[max_length<=75]$transcript)
-less_than_150_orfs_rtrinity<-unique(orf_table_transdecoder_trinity_maxlen[max_length<=75]$transcript)
+less_than_150_orfs_rnaspades<-orf_table_transdecoder_rnaspades_maxlen[max_length<=75]$transcript
+less_than_150_orfs_rtrinity<-orf_table_transdecoder_trinity_maxlen[max_length<=75]$transcript
 
 no_orfs_rnaspades<-setdiff(all_rnaspades_no_rrna_more_than_200$transcript,orf_table_transdecoder_rnaspades$transcript)
 no_orfs_trinity<-setdiff(all_trinity_no_rrna_more_than_200$transcript,orf_table_transdecoder_trinity$transcript)
@@ -114,8 +114,8 @@ hmmer_rnaspades_besthit<-hmmer_rnaspades[,.(eval_min=min(domain_ievalue)),by=tra
 hmmer_trinity_besthit<-hmmer_trinity[,.(eval_min=min(domain_ievalue)),by=transcript]
 
 
-rnaspades_no_hmmer<-setdiff(rnaspades_less_than_150_ORF_without_blast,hmmer_rnaspades_besthit[eval_min<=1e-5]$transcript)
-trinity_no_hmmer<-setdiff(trinity_less_than_150_ORF_without_blast,hmmer_trinity_besthit[eval_min<=1e-5]$transcript)
+rnaspades_no_hmmer<-setdiff(rnaspades_less_than_150_ORF_without_blast,hmmer_rnaspades_besthit[eval_min<=1e-10]$transcript)
+trinity_no_hmmer<-setdiff(trinity_less_than_150_ORF_without_blast,hmmer_trinity_besthit[eval_min<=1e-10]$transcript)
 
 
 write.table(rnaspades_no_hmmer,file="rnaspades_no_hmmer.txt",row.names = F,col.names = F,quote = F,sep = "\t")
@@ -128,7 +128,7 @@ feelncrna_trinity_sequences<-readDNAStringSet("trinity_no_hmmer.fa.lncRNA.fa",fo
 
 feelncrna_rnaspades<-names(feelncrna_rnaspades_sequences)
 feelncrna_trinity<-names(feelncrna_trinity_sequences)
-feelncrna_trinity<-str_extract(feelncrna_trinity,"TRINITY.*i\\d+")
+
 
 #mapping
 
@@ -256,10 +256,10 @@ write.table(trinity_filtered_exons,file="trinity_filtered_exons.txt",row.names =
 
 
 
-lengths_table<-data.table(filtering=rep(c("All transcripts","rRNA filtering","Length filtering","ORF filtering","DIAMOND filtering","HMMER filtering","FEELnc filtering","Percent identity filtering","Bacterial lncRNA filtering ","Exon number filtering","Protein-coding exons overlap filtering"),2),number_of_lncRNA_candidates=c(nrow(all_rnaspades),nrow(rnaspades_without_rrna),nrow(all_rnaspades_no_rrna_more_than_200),length(less_than_150_or_no_orfs_rnaspades),length(rnaspades_less_than_150_ORF_without_blast),length(rnaspades_no_hmmer),length(feelncrna_rnaspades),nrow(rnaspades_paf_perc),nrow(rnaspades_paf_nobact),nrow(rnaspades_lncrna_paf_more_than_one_exon),length(rnaspades_filtered_list),nrow(all_trinity),nrow(trinity_without_rrna),nrow(all_trinity_no_rrna_more_than_200),length(less_than_150_or_no_orfs_trinity),length(trinity_less_than_150_ORF_without_blast),length(trinity_no_hmmer),length(feelncrna_trinity),nrow(trinity_paf_perc),nrow(trinity_paf_nobact),nrow(trinity_lncrna_paf_more_than_one_exon),length(trinity_filtered_list)
+lengths_table<-data.table(filtering=rep(c("All transcripts","rRNA filtering","Length filtering (200 bp)","ORF filtering (75 aa)","Protein similarity filtering (DIAMOND)","Protein similarity filtering (HMMER)","FEELnc filtering","Percent identity filtering","Bacterial lncRNA filtering ","One-exon transcript filtering","Protein-coding exons overlap filtering"),2),number_of_lncRNA_candidates=c(nrow(all_rnaspades),nrow(rnaspades_without_rrna),nrow(all_rnaspades_no_rrna_more_than_200),length(less_than_150_or_no_orfs_rnaspades),length(rnaspades_less_than_150_ORF_without_blast),length(rnaspades_no_hmmer),length(feelncrna_rnaspades),nrow(rnaspades_paf_perc),nrow(rnaspades_paf_nobact),nrow(rnaspades_lncrna_paf_more_than_one_exon),length(rnaspades_filtered_list),nrow(all_trinity),nrow(trinity_without_rrna),nrow(all_trinity_no_rrna_more_than_200),length(less_than_150_or_no_orfs_trinity),length(trinity_less_than_150_ORF_without_blast),length(trinity_no_hmmer),length(feelncrna_trinity),nrow(trinity_paf_perc),nrow(trinity_paf_nobact),nrow(trinity_lncrna_paf_more_than_one_exon),length(trinity_filtered_list)
 ),Transcriptome=c(rep("rnaSPAdes",11),rep("Trinity",11)))
 
-lengths_table[,filtering:=factor(filtering,levels=rev(c("All transcripts","rRNA filtering","Length filtering","ORF filtering","DIAMOND filtering","HMMER filtering","FEELnc filtering","Percent identity filtering","Bacterial lncRNA filtering ","Exon number filtering","Protein-coding exons overlap filtering")))]
+lengths_table[,filtering:=factor(filtering,levels=rev(c("All transcripts","rRNA filtering","Length filtering (200 bp)","ORF filtering (75 aa)","Protein similarity filtering (DIAMOND)","Protein similarity filtering (HMMER)","FEELnc filtering","Percent identity filtering","Bacterial lncRNA filtering ","One-exon transcript filtering","Protein-coding exons overlap filtering")))]
 
 
 lengths_plot<-ggplot(data=lengths_table,aes(x=filtering,y=number_of_lncRNA_candidates,fill=Transcriptome)) +
@@ -270,13 +270,11 @@ lengths_plot<-ggplot(data=lengths_table,aes(x=filtering,y=number_of_lncRNA_candi
   theme(axis.title.y = element_blank()) +
   coord_flip() +
   ylab("Number of transcripts") +
-  scale_x_discrete(labels=c("Protein-coding exons overlap filtering","Exon number filtering","Bacterial lncRNA filtering","Percent identity filtering","FEELnc filtering","HMMER filtering","DIAMOND filtering","ORF filtering","Length filtering","rRNA filtering","All transcripts")) +
+  scale_x_discrete(labels=rev(c("All transcripts","rRNA filtering","Length filtering (200 bp)","ORF filtering (75 aa)","Protein similarity filtering (DIAMOND)","Protein similarity filtering (HMMER)","FEELnc filtering","Percent identity filtering","Bacterial lncRNA filtering ","One-exon transcript filtering","Protein-coding exons overlap filtering"))) +
    scale_fill_locuszoom() +
   theme(axis.text = element_text(size=4)) +
   theme(axis.title.x = element_text(size=5.5)) +
   theme(strip.text = element_text(size=5))
-
-
 
 
 
@@ -306,9 +304,9 @@ rnaspades_paf_filtered_granges_reduced$gene<-names(rnaspades_paf_filtered_grange
 rnaspades_paf_filtered_granges_reduced<-unique(rnaspades_paf_filtered_granges_reduced)
 trinity_paf_filtered_granges_reduced$gene<-names(trinity_paf_filtered_granges_reduced)
 trinity_paf_filtered_granges_reduced<-unique(trinity_paf_filtered_granges_reduced)
+
+
 #removing the nested overlaps of genes which don't overlap between the transcriptomes
-
-
 
 nested_overlaps_rnaspades<-findOverlaps(rnaspades_paf_filtered_granges_reduced,rnaspades_paf_filtered_granges_reduced,type = "within")
 nested_overlap_table_rnaspades<-cbind(as.data.table(rnaspades_paf_filtered_granges_reduced[queryHits(nested_overlaps_rnaspades)]),as.data.table(rnaspades_paf_filtered_granges_reduced[subjectHits(nested_overlaps_rnaspades)]))
@@ -363,7 +361,7 @@ setnames(overlap_table,c("seqnames1","start1","end1","width1","strand1","gene1",
 
 inter_width_vector<-c()
 for (i in 1:nrow(overlap_table)) {
-  inter_width_vector<-c(inter_width_vector,Overlap(c(overlap_table$start1[i],overlap_table$end1[i]),c(overlap_table$start2[i],overlap_table$end2[i])))
+  inter_width_vector<-c(inter_width_vector,1+Overlap(c(overlap_table$start1[i],overlap_table$end1[i]),c(overlap_table$start2[i],overlap_table$end2[i])))
 }
 overlap_table[,intersect_widths:=inter_width_vector]
 overlap_table[width1<=width2,max_width:=width2]
@@ -375,7 +373,7 @@ overlap_table[,length_frac:=100*(intersect_widths/max_width)]
 #intersect plot
 
 perc_plot<-ggplot(data=overlap_table,aes(x=length_frac))+
-  geom_histogram(fill="chocolate1",col="black",binwidth = 5,alpha=0.85) +
+  geom_histogram(fill="chocolate1",col="black",alpha=0.85,binwidth = 5) +
   theme_bw() +
   xlab("Intersect percentage") +
   ylab("Number of gene pairs") +
@@ -419,6 +417,9 @@ setnames(reduced_lessthan20_shorter_rnaspades,c("seqnames","start","end","width"
 setnames(reduced_lessthan20_shorter_trinity,c("seqnames","start","end","width","gene"))
 
 
+
+
+
 reduced_lessthan20_shorter_rnaspades_gr<-makeGRangesFromDataFrame(reduced_lessthan20_shorter_rnaspades,keep.extra.columns = T)
 short_within_overlap_rnaspades<-findOverlaps(reduced_lessthan20_shorter_rnaspades_gr,trinity_paf_filtered_granges_reduced,ignore.strand=T,type="within")
 short_within_overlap_rnaspades_table<-cbind(as.data.table(reduced_lessthan20_shorter_rnaspades_gr[queryHits(short_within_overlap_rnaspades)]),as.data.table(trinity_paf_filtered_granges_reduced[subjectHits(short_within_overlap_rnaspades)]))
@@ -450,7 +451,7 @@ reduced_lessthan20_shorter_trinity<-anti_join(reduced_lessthan20_shorter_trinity
 trinity_paf_filtered_granges_reduced_dt<-as.data.table(trinity_paf_filtered_granges_reduced)
 trinity_paf_filtered_granges_reduced_dt<-anti_join(trinity_paf_filtered_granges_reduced_dt,short_within_overlap_trinity_table[,.SD,.SDcols=c("seqnames","start","end","width","strand","gene")])
 trinity_paf_filtered_granges_reduced<-makeGRangesFromDataFrame(trinity_paf_filtered_granges_reduced_dt,keep.extra.columns = T)
-reduced_lessthan20_shorter_together<-unique(rbind(reduced_lessthan20_shorter_rnaspades,reduced_lessthan20_shorter_trinity))
+reduced_lessthan20_shorter_together<-rbind(reduced_lessthan20_shorter_rnaspades,reduced_lessthan20_shorter_trinity)
 
 
 
@@ -560,7 +561,7 @@ final_lncrna_list_together_length<-length(final_lncrna_list_rnaspades) + length(
 
 #numbers table
 
-lncrna_numbers_table<-data.table(category=c("All  genes","RNASpades genes","Trinity genes","100% overlapping fenes", "Longer RNASpades genes with more than 20% overlap","Longer Trinity genes with more than 20% overlap","Longer RNASpades genes with less than 20% overlap","Longer Trinity genes with less than 20% overlap","All genes with more than 20% overlap","All longer genes with less than 20% overlap","Shorter RNASpades genes with more than 20% overlap","Shorter Trinity genes with more than 20% overlap","Shorter RNASpades genes with less than 20% overlap","Shorter Trinity genes with less than 20% overlap","All short genes with more than 20% overlap","All short genes with less than 20% overlap","RNASpades genes without overlaps","Trinity genes without overlap","Final RNASpades genes","Final Trinity genes","Final genes","Final RNASpades transcripts","Final Trinity transcripts","Final transcripts"),number=c(all_together_reduced_num,rnaspades_reduced_length,trinity_reduced_length,same_overlaps_reduced_num,overlap_rnaspades_morethan20_longer_reduced_num,overlap_trinity_morethan20_longer_reduced_num,overlap_rnaspades_lessthan20_longerreduced_num,overlap_trinity_lessthan20_longer_reduced_num,overlap_together_morethan20_longer_reduced_num,overlap_together_lessthan20_longer_reduced_num,overlap_rnaspades_morethan20_shorter_reduced_num,overlap_trinity_morethan20_shorter_reduced_num,overlap_rnaspades_lessthan20_shorter_reduced_num,overlap_trinity_lessthan20_shorter_reduced_num,overlap_together_morethan20_shorter_reduced_num,overlap_together_lessthan20_shorter_reduced_num,rnaspades_unique,trinity_unique,lncrnas_final_reduced_num_rnaspades,lncrnas_final_reduced_num_trinity,lncrnas_final_reduced_num_together,final_lncrna_list_rnaspades_length,final_lncrna_list_trinity_length,final_lncrna_list_together_length))
+lncrna_numbers_table<-data.table(category=c("All genes","RNASpades genes","Trinity genes","100% overlapping fenes", "Longer RNASpades genes with more than 20% overlap","Longer Trinity genes with more than 20% overlap","Longer RNASpades genes with less than 20% overlap","Longer Trinity genes with less than 20% overlap","All genes with more than 20% overlap","All longer genes with less than 20% overlap","Shorter RNASpades genes with more than 20% overlap","Shorter Trinity genes with more than 20% overlap","Shorter RNASpades genes with less than 20% overlap","Shorter Trinity genes with less than 20% overlap","All short genes with more than 20% overlap","All short genes with less than 20% overlap","RNASpades genes without overlaps","Trinity genes without overlap","Final RNASpades genes","Final Trinity genes","Final genes","Final RNASpades transcripts","Final Trinity transcripts","Final transcripts"),number=c(all_together_reduced_num,rnaspades_reduced_length,trinity_reduced_length,same_overlaps_reduced_num,overlap_rnaspades_morethan20_longer_reduced_num,overlap_trinity_morethan20_longer_reduced_num,overlap_rnaspades_lessthan20_longerreduced_num,overlap_trinity_lessthan20_longer_reduced_num,overlap_together_morethan20_longer_reduced_num,overlap_together_lessthan20_longer_reduced_num,overlap_rnaspades_morethan20_shorter_reduced_num,overlap_trinity_morethan20_shorter_reduced_num,overlap_rnaspades_lessthan20_shorter_reduced_num,overlap_trinity_lessthan20_shorter_reduced_num,overlap_together_morethan20_shorter_reduced_num,overlap_together_lessthan20_shorter_reduced_num,rnaspades_unique,trinity_unique,lncrnas_final_reduced_num_rnaspades,lncrnas_final_reduced_num_trinity,lncrnas_final_reduced_num_together,final_lncrna_list_rnaspades_length,final_lncrna_list_trinity_length,final_lncrna_list_together_length))
 
 lncrna_numbers_table
 
@@ -573,11 +574,11 @@ write.table(final_lncrna_list_trinity,file="final_lncrna_list_trinity.txt",row.n
 write.table(lncrna_numbers_table,file="lncrna_numbers_table.txt",row.names = F,quote = F)
 
 
-lncrna_numbers_table_plot<-lncrna_numbers_table[category%in%c("RNASpades genes","Trinity genes","Longer RNASpades genes with more than 20% overlap","Shorter RNASpades genes with more than 20% overlap","Longer Trinity genes with more than 20% overlap","Shorter Trinity genes with more than 20% overlap","Longer RNASpades genes with less than 20% overlap","Shorter RNASpades genes with less than 20% overlap","Longer Trinity genes with less than 20% overlap","Shorter Trinity genes with less than 20% overlap","RNASpades genes without overlaps","Trinity genes without overlap","Final RNASpades genes","Final Trinity genes")]
+lncrna_numbers_table_plot<-lncrna_numbers_table[category%in%c("RNASpades genes","Trinity genes","Longer RNASpades genes with more than 20% overlap","Longer Trinity genes with more than 20% overlap","Longer RNASpades genes with less than 20% overlap","Longer Trinity genes with less than 20% overlap","Shorter RNASpades genes with less than 20% overlap","Shorter Trinity genes with less than 20% overlap","RNASpades genes without overlaps","Trinity genes without overlap","Final RNASpades genes","Final Trinity genes")]
 
-lncrna_numbers_table_plot[,category:=c("All genes","All genes","Longer genes (>= 20% overlap)","Longer genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Longer genes (< 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Shorter genes (< 20% overlap)","Unique genes","Unique genes","Final genes","Final genes")]
-lncrna_numbers_table_plot[,category:=factor(category,levels = c("All genes","Unique genes","Longer genes (>= 20% overlap)","Shorter genes (>= 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Final genes"))]
-lncrna_numbers_table_plot[,Transcriptome:=rep(c("rnaSPades","Trinity"),7)]
+lncrna_numbers_table_plot[,category:=c("All genes","All genes","Longer genes (>= 20% overlap)","Longer genes (>= 20% overlap)","Longer genes (< 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Shorter genes (< 20% overlap)","Unique genes","Unique genes","Final genes","Final genes")]
+lncrna_numbers_table_plot[,category:=factor(category,levels = c("All genes","Unique genes","Longer genes (>= 20% overlap)","Longer genes (< 20% overlap)","Shorter genes (< 20% overlap)","Final genes"))]
+lncrna_numbers_table_plot[,Transcriptome:=rep(c("rnaSPades","Trinity"),6)]
 
 plot_consensus<-ggplot(data=lncrna_numbers_table_plot,aes(x=category,y=number,fill=Transcriptome)) +
   geom_bar(stat="identity",position = "stack",color="black",width = 0.5,alpha=0.8) +
@@ -613,11 +614,6 @@ rnaspades_paf_filtered_iso<-rnaspades_paf_filtered[query_name%in%final_lncrna_li
 trinity_paf_filtered_iso<-trinity_paf_filtered[query_name%in%final_lncrna_list_trinity]
 
 
-rnaspades_paf_filtered_more_iso<-rnaspades_paf_filtered[query_name%in%final_lncrna_list_rnaspades]
-trinity_paf_filtered_more_iso<-trinity_paf_filtered[query_name%in%final_lncrna_list_trinity]
-
-isoform_overlap_table_rnaspades<-isoform_overlap_table_rnaspades[gene_tr==gene]
-isoform_overlap_table_trinity<-isoform_overlap_table_trinity[gene_tr==gene]
 isoform_map_table_rnaspades<-isoform_overlap_table_rnaspades[,.SD,.SDcols=c("transcript_name","gene_id")]
 isoform_map_table_trinity<-isoform_overlap_table_trinity[,.SD,.SDcols=c("transcript_name","gene_id")]
 isoform_map_table_together<-rbind(isoform_map_table_rnaspades,isoform_map_table_trinity)
@@ -634,7 +630,8 @@ isoforms_number_together_lncrna_num<-isoforms_number_together_lncrna_num[number_
 isoforms_number_together_lncrna_num<-rbind(isoforms_number_together_lncrna_num,data.table(number_of_isoforms=">9",N=sum(isoforms_number_together_lncrna_num_copy[number_of_isoforms>9]$N),category="lncRNA",proportion=sum(isoforms_number_together_lncrna_num_copy[number_of_isoforms>9]$proportion)))
 #mRNA isoforms
 prot_transcript_for_isoforms<-protein_coding_annotation[feature=="transcript"]
-prot_transcript_for_isoforms[,gene:=str_remove(attribute,"\\.t\\d+")]
+prot_transcript_for_isoforms[,gene:=str_extract(attribute,"(?<=gene_id ).*")]
+prot_transcript_for_isoforms[,gene:=str_remove_all(gene,'"')]
 prot_transcript_for_isoforms_table<-prot_transcript_for_isoforms[,.(number_of_isoforms=.N),by=gene]
 prot_transcript_for_isoforms_table<-prot_transcript_for_isoforms_table[,.SD,.SDcols="number_of_isoforms"]
 prot_transcript_for_isoforms_table_num<-prot_transcript_for_isoforms_table[,.N,by=number_of_isoforms]
@@ -659,7 +656,9 @@ isoforms_plot_proportions
 ggsave(isoforms_plot_proportions,file="isoforms_plot_proportions.png",width = 6,height = 4.2)
 #exons and introns
 ##isoforms with the biggest number of exons per gene
+rnaspades_filtered_exons<-rnaspades_filtered_exons[transcript%in%final_lncrna_list_rnaspades]
 rnaspades_filtered_exons_copy<-copy(rnaspades_filtered_exons)
+trinity_filtered_exons<-trinity_filtered_exons[transcript%in%final_lncrna_list_trinity]
 trinity_filtered_exons_copy<-copy(trinity_filtered_exons)
 rnaspades_filtered_exons_numb_per_trans<-rnaspades_filtered_exons_copy[,.N,by=transcript]
 trinity_filtered_exons_numb_per_trans<-trinity_filtered_exons_copy[,.N,by=transcript]
@@ -667,14 +666,15 @@ setnames(rnaspades_filtered_exons_numb_per_trans,c("transcript_name","number_of_
 setnames(trinity_filtered_exons_numb_per_trans,c("transcript_name","number_of_exons"))
 isoform_overlap_table_rnaspades_merged<-merge(isoform_overlap_table_rnaspades,rnaspades_filtered_exons_numb_per_trans,by="transcript_name")
 isoform_overlap_table_trinity_merged<-merge(isoform_overlap_table_trinity,trinity_filtered_exons_numb_per_trans,by="transcript_name")  
-isoform_overlap_table_rnaspades_merged[,is_max_exons_iso:=ifelse(.SD==max(.SD),T,F),.SDcols="number_of_exons",by=c("seqnames2","start2","end2","gene")]
-isoform_overlap_table_rnaspades_merged[is_max_exons_iso==T,max_len:=ifelse(.SD==max(.SD),T,F),.SDcols="transcript_length",by=c("seqnames2","start2","end2","gene")]
-isoform_overlap_table_trinity_merged[,is_max_exons_iso:=ifelse(.SD==max(.SD),T,F),.SDcols="number_of_exons",by=c("seqnames2","start2","end2","gene")]
-isoform_overlap_table_trinity_merged[is_max_exons_iso==T,max_len:=ifelse(.SD==max(.SD),T,F),.SDcols="transcript_length",by=c("seqnames2","start2","end2","gene")]
+isoform_overlap_table_rnaspades_merged[,is_max_exons_iso:=ifelse(.SD==max(.SD),T,F),.SDcols="number_of_exons",by=c("seqnames2","start2","end2","gene_id")]
+isoform_overlap_table_rnaspades_merged[is_max_exons_iso==T,max_len:=ifelse(.SD==max(.SD),T,F),.SDcols="transcript_length",by=c("seqnames2","start2","end2","gene_id")]
+isoform_overlap_table_trinity_merged[,is_max_exons_iso:=ifelse(.SD==max(.SD),T,F),.SDcols="number_of_exons",by=c("seqnames2","start2","end2","gene_id")]
+isoform_overlap_table_trinity_merged[is_max_exons_iso==T,max_len:=ifelse(.SD==max(.SD),T,F),.SDcols="transcript_length",by=c("seqnames2","start2","end2","gene_id")]
 isoform_overlap_table_rnaspades_merged<-unique(isoform_overlap_table_rnaspades_merged,by=c("seqnames2","start2","end2","gene","number_of_exons","transcript_length"))
 isoform_overlap_table_trinity_merged<-unique(isoform_overlap_table_trinity_merged,by=c("seqnames2","start2","end2","gene","number_of_exons","transcript_length"))
 rnaspades_longest_iso<-unique(isoform_overlap_table_rnaspades_merged[max_len==T]$transcript_name)
 trinity_longest_iso<-unique(isoform_overlap_table_trinity_merged[max_len==T]$transcript_name)
+together_longest_iso<-c(rnaspades_longest_iso,trinity_longest_iso)
 write.table(rnaspades_longest_iso,file="rnaspades_longest_iso",row.names = F,col.names = F,quote = F,sep = "\t")
 write.table(trinity_longest_iso,file="trinity_longest_iso",row.names = F,col.names = F,quote = F,sep = "\t")
 rnaspades_paf_filtered_union_copy<-copy(rnaspades_paf_filtered_union)
@@ -701,7 +701,7 @@ protein_coding_annotation[feature=="CDS" | feature=="transcript",exon_width_sum:
 protein_coding_annotation[feature=="CDS" | feature=="transcript",number_of_exons:=nrow(.SD)-1,by=attribute]
 protein_coding_annotation[feature=="transcript",most_exons_transcript:=ifelse(.SD==max(.SD),T,F),.SDcols="number_of_exons",by=gene]
 protein_coding_annotation[most_exons_transcript==T,max_length:=ifelse(.SD==max(.SD),T,F),.SDcols="exon_width_sum",by=gene]
-protein_transcripts<-protein_coding_annotation[most_exons_transcript==T]
+protein_transcripts<-protein_coding_annotation[max_length==T]
 write.table(protein_transcripts$attribute,file="aug_long_iso.txt",row.names = F,col.names = F,quote = F,sep = "\t")
 protein_exons<-protein_coding_annotation[feature=="CDS" & attribute %in% protein_transcripts$attribute]
 protein_coding_annotation_clean<-copy(protein_coding_annotation)
@@ -786,7 +786,6 @@ lncrna_filtered_introns$transcript<-names(lncrna_filtered_introns)
 protein_exons_split<-split(protein_exons,protein_exons$attribute)
 protein_transcripts_granges<-makeGRangesFromDataFrame(protein_transcripts,ignore.strand = T,keep.extra.columns = T)
 protein_transcripts_granges_split<-split(protein_transcripts_granges,protein_transcripts_granges$attribute)
-protein_transcripts_granges_split<-protein_transcripts_granges_split[names(protein_transcripts_granges_split)%in%names(protein_exons_split)]
 protein_introns<-unlist(GenomicRanges::setdiff(protein_transcripts_granges_split,protein_exons_split))
 protein_introns$transcript<-names(protein_introns)
 #lncRNA and protein intron comparison
@@ -825,6 +824,7 @@ element_width_table<-rbind(exon_widths_table,intron_width_table,transcript_lengt
 element_width_table[,feature:=factor(feature,levels = c("Exons","Introns","Transcripts","Genes"))]
 
 features_comparison<-list(c("lncRNA","protein_coding_genes"))
+options(scipen=10000)
 element_length_boxplot<-ggplot(data=element_width_table,aes(x=category,y=width,fill=category)) +
   geom_boxplot(alpha=0.8,outlier.size = 0.2) +
   facet_grid(.~feature) +
@@ -843,7 +843,7 @@ element_length_boxplot<-ggplot(data=element_width_table,aes(x=category,y=width,f
 element_length_boxplot 
 ggsave(element_length_boxplot,file="element_length_boxplot.png",width=6,height = 4) 
 
-
+ options(scipen=10000)
 figure_two<-ggdraw() +
   draw_plot(isoforms_plot_proportions, x = 0.109, y = 0.5, width = .36, height = .38) +
   draw_plot(exons_plot_proportion, x = 0.5, y = 0.5, width = .36, height = .38) +
@@ -904,6 +904,8 @@ heatmap_splice_sites
 ggsave(heatmap_splice_sites,file="heatmap_splice_sites.png")
 #mapping locations (genes)
 #intronic
+
+
 protein_coding_annotation_clean2[feature!="gene",attribute:=str_extract(attribute,'".*t\\d+"')]
 protein_coding_annotation_clean2[feature!="gene",attribute:=str_remove_all(attribute,'"')]
 protein_coding_annotation_exons_clean<-protein_coding_annotation_clean2[feature=="CDS"]
@@ -944,7 +946,7 @@ int_ex_overlap_candidates_exons<-makeGRangesFromDataFrame(filtered_together_paf_
 overlaps_candidates_exons_prot_introns<-findOverlaps(int_ex_overlap_candidates_exons,protein_introns,ignore.strand=T)
 overlaps_candidates_exons_prot_introns_table<-cbind(as.data.table(int_ex_overlap_candidates_exons[queryHits(overlaps_candidates_exons_prot_introns)]),as.data.table(protein_introns[subjectHits(overlaps_candidates_exons_prot_introns)]))
 setnames(overlaps_candidates_exons_prot_introns_table,c("seqnames1","start1","end1","width1","strand1","transcript","seqnames2","start2","end2","width2","strand2","transcript_int"))
-overlapping_lncrna<-c(overlapping_lncrna,overlaps_candidates_exons_prot_introns_table$transcript)
+overlapping_lncrna<-c(overlapping_lncrna,unique(overlaps_candidates_exons_prot_introns_table$transcript))
 #transcript number per class
 lncRNA_classification_table<-unique(data.table(transcript=c(intronic_lncrna,overlapping_lncrna,intergenic_lncrna),class=c(rep("intronic_lncRNA",length(intronic_lncrna)),rep("overlapping_lncRNA",length(overlapping_lncrna)),rep("intergenic_lncRNA",length(intergenic_lncrna)))))
 number_of_lncrna_classes<-lncRNA_classification_table[,.(number_of_lncRNA=.N),by=class]
@@ -995,10 +997,10 @@ setnames(class_introns_table,c("element_length","class","feature"))
 setnames(lncRNA_classification_table,c("transcript_name","class"))
 overlaps_table_rnaspades_with_class<-merge(isoform_overlap_table_rnaspades,lncRNA_classification_table,by="transcript_name")
 overlaps_table_trinity_with_class<-merge(isoform_overlap_table_trinity,lncRNA_classification_table,by="transcript_name")
-class_genes_rnaspades<-unique(overlaps_table_rnaspades_with_class[,.SD,.SDcols=c("seqnames1","start1","end1","width1","class")])
-class_genes_trinity<-unique(overlaps_table_trinity_with_class[,.SD,.SDcols=c("seqnames1","start1","end1","width1","class")])
+class_genes_rnaspades<-unique(overlaps_table_rnaspades_with_class[,.SD,.SDcols=c("seqnames2","start2","end2","width2","class")])
+class_genes_trinity<-unique(overlaps_table_trinity_with_class[,.SD,.SDcols=c("seqnames2","start2","end2","width2","class")])
 class_genes_table<-rbind(class_genes_rnaspades,class_genes_trinity)
-class_genes_table<-class_genes_table[,.SD,.SDcols=c("width1","class")]
+class_genes_table<-class_genes_table[,.SD,.SDcols=c("width2","class")]
 setnames(class_genes_table,c("element_length","class"))
 class_genes_table[,feature:="Genes"]
 class_together_table<-rbind(class_transcripts_table,class_exons_table,class_introns_table,class_genes_table)
@@ -1031,7 +1033,7 @@ ggsave(class_lengths_plot,file="class_lengths_plot.png",width=6,height = 4)
 
 
 #genesum of bases by class
-class_genes_table
+
 class_genes_table_sum_width<-class_genes_table[,.(bases_sum=sum(element_length)),by=class]
 
 class_genes_table_sum_width[,bases_sum_kb:=bases_sum/1000]
@@ -1094,7 +1096,8 @@ lncrnas_final_reduced_together_dt<-as.data.table(lncrnas_final_reduced_together)
 
 class_gene_together<-unique(rbind(class_genes_rnaspades,class_genes_trinity))
 setnames(lncrnas_final_reduced_together_dt,c("seqnames1","start1","end1","width1","strand1","gene","gene_id"))
-lncrnas_final_reduced_together_dt_merged<-merge(lncrnas_final_reduced_together_dt,class_gene_together,by=c("seqnames1","start1","end1","width1"),all.x=T)
+setnames(class_gene_together,c("seqnames1","start1","end1","width1","class"))
+lncrnas_final_reduced_together_dt_merged<-merge(lncrnas_final_reduced_together_dt,class_gene_together,by=c("seqnames1","start1","end1","width1"))
 intergenic_lncrna_dt<-lncrnas_final_reduced_together_dt_merged[class=="intergenic_lncRNA"]
 intergenic_lncrna_granges<-makeGRangesFromDataFrame(intergenic_lncrna_dt,seqnames.field = "seqnames1",start.field = "start1",end.field = "end1",keep.extra.columns = T)
 intergenic_nearest_gene<-nearest(intergenic_lncrna_granges,protein_coding_genes_granges)
@@ -1103,11 +1106,8 @@ prot_cod_intergenic_nearest<-protein_coding_genes[intergenic_nearest_gene]
 
 intergenic_prot_nearest_table<-data.table(seqnames1=as.character(seqnames(intergenic_lncrna_granges)),start1=start(intergenic_lncrna_granges),end1=end(intergenic_lncrna_granges),lncrna=intergenic_lncrna_granges$gene_id,seqnames2=prot_cod_intergenic_nearest$seqname,start2=prot_cod_intergenic_nearest$start,end2=prot_cod_intergenic_nearest$end,prot_cod_gene=prot_cod_intergenic_nearest$attribute)
 
-inter_on_contigs_without_genes<-which(is.na(intergenic_prot_nearest_table$seqnames2))
-length(inter_on_contigs_without_genes)
-
 intergenic_prot_nearest_table<-intergenic_prot_nearest_table[is.na(seqnames2)==F]
-intergenic_prot_nearest_table[,distance:=ifelse(start1>start2,start1-end2-1,end1-start2+1)]
+intergenic_prot_nearest_table[,distance:=ifelse(start1>start2,start1-end2+1,end1-start2+1)]
 
 inter_prot_cod_distance_plot<-ggplot(data=intergenic_prot_nearest_table,aes(x=distance)) +
   geom_histogram(color="black",fill="skyblue",binwidth = 250) +
@@ -1128,11 +1128,11 @@ ggsave(inter_prot_cod_distance_plot,file="inter_prot_cod_distance_plot.png",widt
 #intronic
 
 
-intronic_prots<-unique(overlaps_lncRNA_prot_within_table$attribute)
+intronic_prots<-unique(overlaps_lncRNA_prot_within_table[query_name%in%intronic_lncrna]$attribute)
 
 #overlapping
 
-overlapping_prots<-unique(overlaps_prot_lncrna_within_table$attribute)
+overlapping_prots<-unique(overlaps_prot_lncrna_within_table[query_name%in%overlapping_lncrna]$attribute)
 
 
 #intergenic - 1 kb
@@ -1221,7 +1221,8 @@ lncrna_filtered_introns_clean_dt<-merge(lncrna_filtered_introns_clean_dt,isoform
 lncrna_filtered_introns_clean_dt_gr<-makeGRangesFromDataFrame(lncrna_filtered_introns_clean_dt,keep.extra.columns = T)
 lncrna_filtered_introns_clean_dt_gr_split<-split(lncrna_filtered_introns_clean_dt_gr,lncrna_filtered_introns_clean_dt_gr$gene_id)
 lncrna_filtered_introns_clean_dt_gr_split_red<-reduce(lncrna_filtered_introns_clean_dt_gr_split)
-lncrna_filtered_introns_clean_dt_gr_split_red_un<-unlist(lncrna_filtered_introns_clean_dt_gr_split,use.names = T)
+lncrna_filtered_introns_clean_dt_gr_split_red_un<-unlist(lncrna_filtered_introns_clean_dt_gr_split_red,use.names = T)
+lncrna_filtered_introns_clean_dt_gr_split_red_un$gene_id<-as.numeric(names(lncrna_filtered_introns_clean_dt_gr_split_red_un))
 lncrna_filtered_introns_clean_dt_gr_split_red_un_dt<-as.data.table(lncrna_filtered_introns_clean_dt_gr_split_red_un)
 
 lncrna_filtered_introns_clean_dt_gr_split_red_un_dt_merge<-merge(lncrna_filtered_introns_clean_dt_gr_split_red_un_dt,lncRNA_classification_table_with_gene_id,by="gene_id")
@@ -1232,8 +1233,11 @@ lncrna_filtered_exons_clean_dt<-merge(lncrna_filtered_exons_clean_dt,isoform_map
 lncrna_filtered_exons_clean_dt_gr<-makeGRangesFromDataFrame(lncrna_filtered_exons_clean_dt,keep.extra.columns = T)
 lncrna_filtered_exons_clean_dt_gr_split<-split(lncrna_filtered_exons_clean_dt_gr,lncrna_filtered_exons_clean_dt_gr$gene_id)
 lncrna_filtered_exons_clean_dt_gr_split_red<-reduce(lncrna_filtered_exons_clean_dt_gr_split)
-lncrna_filtered_exons_clean_dt_gr_split_red_un<-unlist(lncrna_filtered_exons_clean_dt_gr_split,use.names = T)
+lncrna_filtered_exons_clean_dt_gr_split_red_un<-unlist(lncrna_filtered_exons_clean_dt_gr_split_red,use.names = T)
+lncrna_filtered_exons_clean_dt_gr_split_red_un$gene_id<-as.numeric(names(lncrna_filtered_exons_clean_dt_gr_split_red_un))
 lncrna_filtered_exons_clean_dt_gr_split_red_un_dt<-as.data.table(lncrna_filtered_exons_clean_dt_gr_split_red_un)
+
+
 lncrna_filtered_exons_clean_dt_gr_split_red_un_dt_merge<-merge(lncrna_filtered_exons_clean_dt_gr_split_red_un_dt,lncRNA_classification_table_with_gene_id,by="gene_id")
 exons_sum_table<-lncrna_filtered_exons_clean_dt_gr_split_red_un_dt_merge[,.(sum_el=sum(width)),by="class"]
 
@@ -1280,7 +1284,7 @@ repeatmasker_esu_granges<-makeGRangesFromDataFrame(repeatmasker_esu,seqnames.fie
 lncrnas_final_reduced_together_1kb<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)>1000]
 lncrnas_final_reduced_together_1kb_short<-lncrnas_final_reduced_together[start(lncrnas_final_reduced_together)<=1000]
 regions_lncrna_short<-lncrnas_final_reduced_together_1kb_short
-end(regions_lncrna_short)<-(start(regions_lncrna_short)-1)
+end(regions_lncrna_short)<-start(regions_lncrna_short)-1
 start(lncrnas_final_reduced_together_1kb_short)<-(rep(1,length(lncrnas_final_reduced_together_1kb_short)))
 start(regions_lncrna_short)<-(rep(1,length(lncrnas_final_reduced_together_1kb_short)))
 new_starts<-start(lncrnas_final_reduced_together_1kb)-1000
@@ -1321,7 +1325,7 @@ dt_lncrna_right<-c(lncrnas_final_reduced_together_20kb_short_right,lncrnas_final
 
 dt_lncrna_right_dt<-as.data.table(dt_lncrna_right)
 dt_lncrna_right_dt<-merge(dt_lncrna_right_dt,lncrnas_final_reduced_together,by="gene_id")
-dt_lncrna_right_dt[,start.x:=end.y]
+dt_lncrna_right_dt[,start.x:=end.y+1]
 dt_lncrna_right_dt<-dt_lncrna_right_dt[,.SD,.SDcols=c("seqnames.x","start.x","end.x","width.x","strand.x","gene_id")]
 setnames(dt_lncrna_right_dt,c("seqnames","start","end","width","strand","gene_id"))
 
@@ -1355,7 +1359,7 @@ end(protein_20kb_right)<-end(protein_20kb_right)+999
 dt_prot_right<-c(protein_20kb_short_right,protein_20kb_right)
 dt_prot_right_dt<-as.data.table(dt_prot_right)
 dt_prot_right_dt<-merge(dt_prot_right_dt,protein_coding_genes,by="attribute")
-dt_prot_right_dt[,start.x:=end.y]
+dt_prot_right_dt[,start.x:=end.y+1]
 dt_prot_right_dt<-dt_prot_right_dt[,.SD,.SDcols=c("seqnames","start.x","end.x","width.x","strand","source.x","feature.x","score.x","strand_ignore.x","frame.x","attribute")]
 setnames(dt_prot_right_dt,c("seqnames","start","end","width","strand","source","feature","score","strand_ignore","frame","attribute"))
 
@@ -1521,7 +1525,7 @@ overlaps_repeats_lncrna_bases_table<-cbind(as.data.table(repeatmasker_esu[queryH
 setnames(overlaps_repeats_lncrna_bases_table,c("SW_score","perc.sub","perc.del","perc.ins","query_name","start1","end1","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","element_type","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene","gene_id"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_lncrna_bases_table)) {
-  inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_lncrna_bases_table$start1[i],overlaps_repeats_lncrna_bases_table$end1[i]),c(overlaps_repeats_lncrna_bases_table$start2[i],overlaps_repeats_lncrna_bases_table$end2[i])))
+  inter_width_vector<-c(inter_width_vector,1+Overlap(c(overlaps_repeats_lncrna_bases_table$start1[i],overlaps_repeats_lncrna_bases_table$end1[i]),c(overlaps_repeats_lncrna_bases_table$start2[i],overlaps_repeats_lncrna_bases_table$end2[i])))
 }
 overlaps_repeats_lncrna_bases_table[,intersect_width:=inter_width_vector]
 #overlaps_repeats_lncrna_bases_table<-overlaps_repeats_lncrna_bases_table[inter_width_vector>=10]
@@ -1530,11 +1534,11 @@ overlaps_repeats_lncrna_bases_table[,intersect_width:=inter_width_vector]
 
 overlaps_repeats_exons_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_exons_clean_dt_gr_split_red_un,ignore.strand=T)
 overlaps_repeats_exons_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_exons_20)]),as.data.table(lncrna_filtered_exons_clean_dt_gr_split_red_un_dt[subjectHits(overlaps_repeats_exons_20)]))
-setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","transcript","gene_id"))
+setnames(overlaps_repeats_exons_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene_id"))
 #overlaps_repeats_exons_table_20<-merge(overlaps_repeats_exons_table_20,isoform_map_table_together_cp)
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_exons_table_20)) {
-  inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_exons_table_20$start1[i],overlaps_repeats_exons_table_20$end1[i]),c(overlaps_repeats_exons_table_20$start2[i],overlaps_repeats_exons_table_20$end2[i])))
+  inter_width_vector<-c(inter_width_vector,1+Overlap(c(overlaps_repeats_exons_table_20$start1[i],overlaps_repeats_exons_table_20$end1[i]),c(overlaps_repeats_exons_table_20$start2[i],overlaps_repeats_exons_table_20$end2[i])))
 }
 overlaps_repeats_exons_table_20[,intersect_width:=inter_width_vector]
 
@@ -1556,7 +1560,7 @@ median(lncrna_ex_total_length_merge$perc_ex)
 
 overlaps_repeats_introns_20<-findOverlaps(repeatmasker_esu_granges,lncrna_filtered_introns_clean_dt_gr_split_red_un,ignore.strand=T)
 overlaps_repeats_introns_table_20<-cbind(as.data.table(repeatmasker_esu_granges[queryHits(overlaps_repeats_introns_20)]),as.data.table(lncrna_filtered_introns_clean_dt_gr_split_red_un[subjectHits(overlaps_repeats_introns_20)]))
-setnames(overlaps_repeats_introns_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","transcript","gene_id"))
+setnames(overlaps_repeats_introns_table_20,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","gene_id"))
 #overlaps_repeats_introns_table_20<-merge(overlaps_repeats_introns_table_20,isoform_map_table_together_cp)
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_introns_table_20)) {
@@ -1666,8 +1670,6 @@ length(unique(lncrna_repeat_overlap_category_20_class_merged2$ID))
 length(which(unique(lncrna_repeat_overlap_category_20_class_merged2$ID)%in%unique(overlaps_repeats_proteins_bases_table[attribute%in%overlaps_prot_lncrna_within_table_merge$attribute]$ID)))
 
 
-
-overlaps_repeats_proteins_bases_table
 #repeats exons overlap
 
 
@@ -1676,7 +1678,7 @@ overlaps_repeats_protein_exons_table_20_prot<-cbind(as.data.table(repeatmasker_e
 setnames(overlaps_repeats_protein_exons_table_20_prot,c("seqnames1","start1","end1","width1","strand1","SW_score","perc.sub","perc.del","perc.ins","base_past_end","strand_ignore","repeat_name","repeat_start","repeat_end","repeat_left_bases","ID","V16","repeat_class","repeat_family","species","size","library","group","ltrret_ID","type","elementtype","rep_width","rep_gen_width","genperc","seqnames2","start2","end2","width2","strand2","attribute"))
 inter_width_vector<-c()
 for (i in 1:nrow(overlaps_repeats_protein_exons_table_20_prot)) {
-  inter_width_vector<-c(inter_width_vector,Overlap(c(overlaps_repeats_protein_exons_table_20_prot$start1[i],overlaps_repeats_protein_exons_table_20_prot$end1[i]),c(overlaps_repeats_protein_exons_table_20_prot$start2[i],overlaps_repeats_protein_exons_table_20_prot$end2[i])))
+  inter_width_vector<-c(inter_width_vector,1+Overlap(c(overlaps_repeats_protein_exons_table_20_prot$start1[i],overlaps_repeats_protein_exons_table_20_prot$end1[i]),c(overlaps_repeats_protein_exons_table_20_prot$start2[i],overlaps_repeats_protein_exons_table_20_prot$end2[i])))
 }
 overlaps_repeats_protein_exons_table_20_prot[,intersect_width:=inter_width_vector]
 overlaps_repeats_protein_exons_table_20_prot[,inter_width_sum_trans:=sum(intersect_width),by=c("ID","attribute")]
@@ -2083,7 +2085,7 @@ figure_four<-ggdraw() +
 
 figure_four
 
-ggsave(figure_four,filename = "figure_four.tiff",height = 13,width = 16.99,units = "cm",dpi = 320)
+ggsave(figure_four,filename = "figure_four2.tiff",height = 13,width = 16.99,units = "cm",dpi = 320)
 
 
 
@@ -2100,13 +2102,11 @@ blast_results_sponge_transcriptomes[grepl("transcriptome",sseqid),species:=str_e
 blast_results_sponge_transcriptomes_eval_filt<-blast_results_sponge_transcriptomes[evalue<=1e-13]
 
 blast_results_sponge_transcriptomes_eval_filt[,number_of_species_per_gene:=uniqueN(.SD),.SDcols="species",by=qseqid]
-trans_more_than_one_species<-unique(blast_results_sponge_transcriptomes_eval_filt[number_of_species_per_gene>1]$qseqid)
 
-write.table(trans_more_than_one_species,file="trans_more_than_one_species.txt",row.names = F,col.names = F,quote = F,sep = "\t")
 
 numb_gene_in_genomes_table<-blast_results_sponge_transcriptomes_eval_filt[,uniqueN(qseqid),by=number_of_species_per_gene]
 setnames(numb_gene_in_genomes_table,c("number_of_genomes","number_of_lncrna"))
-total_lncrna_num<-final_lncrna_list_together_length
+total_lncrna_num<-lncrna_numbers_table[category=="Final genes"]$number
 numb_gene_in_genomes_table<-rbind(data.table(number_of_genomes=0,number_of_lncrna=total_lncrna_num-sum(numb_gene_in_genomes_table$number_of_lncrna)),numb_gene_in_genomes_table)
 numb_gene_in_genomes_table<-numb_gene_in_genomes_table[order(number_of_genomes)]
 
@@ -2142,13 +2142,14 @@ blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species<-blast_gr_q_split_redu
 
 #blast_results_sponge_transcriptomes_eval_filt_one_per_transcriptome[,log_e_value:=-log10(e_value+1e-300)]
 
-species_list<-c("Aphrocallistes_vastus_transcriptome","Chondrilla_nucula_transcriptome","Clathrina_sp_transcriptome","Corticium_candelabrum_transcriptome","Crella_elegans_transcriptome","Ephydatia_mulleri_transcriptome","Ephydatia_mullerig_genone","Haliclona_amboinensis_transcriptome","Haliclona_indistincta_transcriptome","Haliclona_oculata_transcriptome","Haliclona_simulans_transcriptome","Haliclona_tubifera_transcriptome","Halisraca_caerulea_transcriptome","Ircinia_fasciculata_transcriptome","Leucosolenia_complicata_transcriptome","Oscarella_carmela_genome","Oscarella_sp_transcriptome","Petrosia_ficiformis_transcriptome","Pseudospongosorites_suberitoides_transcriptome","Stylissa_carteri_genome","Sycon_ciliatum_genome","Xestospongia_testudinaria_genome","Amphimedon_queenslandica_genome")
+species_list<-c("Aphrocallistes_vastus_transcriptome","Chondrilla_nucula_transcriptome","Clathrina_sp_transcriptome","Corticium_candelabrum_transcriptome","Crella_elegans_transcriptome","Ephydatia_mulleri_transcriptome","Ephydatia_mullerig_genome","Haliclona_amboinensis_transcriptome","Haliclona_indistincta_transcriptome","Haliclona_oculata_transcriptome","Haliclona_simulans_transcriptome","Haliclona_tubifera_transcriptome","Halisraca_caerulea_transcriptome","Ircinia_fasciculata_transcriptome","Leucosolenia_complicata_transcriptome","Oscarella_carmela_genome","Oscarella_sp_transcriptome","Petrosia_ficiformis_transcriptome","Pseudospongosorites_suberitoides_transcriptome","Stylissa_carteri_genome","Sycon_ciliatum_genome","Xestospongia_testudinaria_genome","Amphimedon_queenslandica_genome")
 nonexistant_species<-setdiff(species_list,unique(blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species$species))
 
+no_hit_queries<-together_longest_iso[together_longest_iso%in%blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species$qseqid==F]
 
+no_hit_queries_dt<-data.table(qseqid=rep(no_hit_queries,times=length(species_list)),species=rep(species_list,times=length(species_list)),sumqperclen=NA)
+blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species<-rbind(blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species,no_hit_queries_dt)
 
-
-blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species<-rbind(blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species,data.table(qseqid=rep("NODE_6217_length_4525_cov_17.657251_g1739_i1",length(nonexistant_species)),species=nonexistant_species,sumqperclen=rep(NA,length(nonexistant_species))))
 
 species_ordered<-blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species[,.N,by=species][order(-N)]$species
 label_cols<-ifelse(grepl("genome",species_ordered)==T,"brown2","gray52")
@@ -2160,6 +2161,7 @@ species_ordered2<-unique(str_remove(species_ordered2,"_transcriptome"))
 species_ordered3<-species_ordered2
 species_ordered3[species_ordered3=="Ephydatia_mullerig"]<-"Ephydatia_mulleri" 
 species_ordered3<-str_replace(species_ordered3,"_"," ")
+blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species[,qseqid:=factor(qseqid,levels=unique(blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species$qseqid))]
 blast_heatmap_plot<-ggplot(data=blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species,aes(y=species,x=qseqid,fill=sumqperclen)) +
   geom_tile(alpha=1.2) +
   scale_fill_hp(house = "HermioneGranger",name="Percentage of lncRNA aligned\n to subject sequence",na.value="white",direction = -1) +
@@ -2184,7 +2186,7 @@ ggsave(blast_heatmap_plot,file="blast_heatmap_plot.png",width = 7.6,height = 8)
 
 figure_five<-ggdraw() +
   draw_plot(numb_gene_in_genomes_plot, x = 0, y = 0.42, width = .35, height = .38) +
-  draw_plot(blast_heatmap_plot, x = .4, y = 0.35, width = .5, height = .6) +
+  draw_plot(blast_heatmap_plot, x = .4, y = 0.35, width = .5, height = .62) +
   draw_plot_label(label = c("A", "B","C"), size = 7,
                   x = c(0.02, 0.46,0.12), y = c(0.8, 0.94,0.32))
 
@@ -3367,9 +3369,5 @@ figure_seven<-ggdraw() +
 figure_seven
 
 ggsave(figure_seven,filename = "figure_seven.tiff",height = 12,width = 16.99,dpi=320,units = "cm")
-```
-
-```{r}
-
 ```
 
