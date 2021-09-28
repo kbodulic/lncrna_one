@@ -22,7 +22,7 @@ library(cowplot)
 library(ggsci)
 library(RColorBrewer)
 library(wesanderson)
-setwd("F:/rad")
+setwd("C:/Users/kbodulic/Desktop/rad")
 
 all_rnaspades<-fread("all_rnaspades_trans.txt")
 all_trinity<-fread("all_trinity_trans.txt")
@@ -2556,8 +2556,11 @@ setnames(lncrnas_final_reduced_together_dt_emu,"emu_lncrna")
 
 blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq<-unique(blast_gr_q_split_reduce_unlist_dt_lengths_ephy,by="lncrna_emu")
 
-blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq[lncrna_emu%in%lncrnas_final_reduced_together_dt_emu$emu_lncrna]
+unique(blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq$qseqid)
 
+blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq2<-blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq[lncrna_emu%in%lncrnas_final_reduced_together_dt_emu$emu_lncrna]
+
+unique(blast_gr_q_split_reduce_unlist_dt_lengths_ephy_uniq2$qseqid)
 ```
 
 
@@ -2631,7 +2634,7 @@ go_all_esu<-go_all_esu[,.SD,.SDcols=c("#gene_id","gene_ontology_Pfam")]
 colnames(go_all_esu)[1]<-"attribute"
 colnames(go_all_esu)[2]<-"go_names"
 go_all_esu_nonempty<-go_all_esu[go_names!="."]
-
+go_all_esu_nonempty<-go_all_esu_nonempty[attribute%in%protein_coding_annotation$attribute]
 
 prot_overlaps_20kb_dt_GO<-merge(prot_overlaps_20kb_dt,go_all_esu_nonempty,by="attribute")
 
@@ -2781,8 +2784,8 @@ ggsave(distance_p_prot,filename = "distance_p_prot.png",height = 6,width = 9)
 enr_f_set<-prot_overlaps_20kb_dt_GO_longer_f_N$GO_term
 p_values_f<-c()
 for(i in enr_f_set) {
-  a<-go_all_esu[grepl(i,go_names),.N]
-  b<-nrow(go_all_esu)-a
+  a<-go_all_esu_nonempty[grepl(i,go_names),.N]
+  b<-nrow(go_all_esu_nonempty)-a
   d<-prot_overlaps_20kb_dt_GO_longer_f_N[GO_term==i]$N
   e<-nrow(prot_overlaps_20kb_dt)-d
   
@@ -2794,8 +2797,8 @@ p_values_f<-p.adjust(p_values_f,method = "hochberg")
 enr_p_set<-prot_overlaps_20kb_dt_GO_longer_p_N $GO_term
 p_values_p<-c()
 for(i in enr_p_set) {
-  a<-go_all_esu[grepl(i,go_names),.N]
-  b<-nrow(go_all_esu)-a
+  a<-go_all_esu_nonempty[grepl(i,go_names),.N]
+  b<-nrow(go_all_esu_nonempty)-a
   d<-prot_overlaps_20kb_dt_GO_longer_p_N[GO_term==i]$N
   e<-nrow(prot_overlaps_20kb_dt)-d
   
@@ -2991,10 +2994,10 @@ colnames(lncrnas_final_reduced_together_dt_emu)[c(4,5)]<-c("width1","strand1")
 lncrnas_final_reduced_together_gr_emu<-makeGRangesFromDataFrame(lncrnas_final_reduced_together_dt_emu,seqnames.field = "seqnames",start.field = "start",end.field = "end",ignore.strand = T,keep.extra.columns = T)
 
 
-synteny_table_merged_prot[,Emu_start:=Emu_start+100]
-synteny_table_merged_prot[,Emu_end:=Emu_end+100]
-synteny_table_merged_prot[,Esu_start:=Esu_start+100]
-synteny_table_merged_prot[,Esu_end:=Esu_end+100]
+synteny_table_merged_prot[,Emu_start:=Emu_start-200]
+synteny_table_merged_prot[,Emu_end:=Emu_end+200]
+synteny_table_merged_prot[,Esu_start:=Esu_start-200]
+synteny_table_merged_prot[,Esu_end:=Esu_end+200]
 
 synteny_table_merged_prot_emu_gr<-makeGRangesFromDataFrame(synteny_table_merged_prot[,.SD,.SDcols=c("Emu_seqname","Emu_start","Emu_end","Emu_prots")],seqnames.field = "Emu_seqname",start.field = "Emu_start",end.field = "Emu_end",ignore.strand = T,keep.extra.columns = T)
 
@@ -3019,7 +3022,7 @@ block_lncrna_merge<-merge(synteny_table_merged_prot_esu_gr_lncrna_ovl_dt,synteny
 
 emu_genome<-readDNAStringSet("Emu_genome_v1.fa")
 
-setwd("F:/1_script/rad/synt")
+setwd("C:/Users/kbodulic/Desktop/rad/synt2")
  
 block_lncrna_merge[,lncrna_esu_all:=paste0(gene_id.x,collapse = " "),by="block"]
 block_lncrna_merge[,lncrna_emu_all:=paste0(gene_id.y,collapse = " "),by="block"]
@@ -3110,9 +3113,8 @@ synt_pairs_table_uq_class
 ```
 
 ```{r}
-
 synt_lncrna<-unique(synt_pairs_table$Esu_lncrna)
-cons_lncrna<-unique(isoform_map_table_together[transcript_name%in%blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species$qseqid]$gene_id)
+cons_lncrna<-unique(isoform_map_table_together[transcript_name%in%blast_gr_q_split_reduce_unlist_dt_lengths_one_per_species[is.na(sumqperclen)==F]$qseqid]$gene_id)
 synt_cons_lncrna<-unique(intersect(synt_lncrna,cons_lncrna))
 synt_lncrna2<-setdiff(synt_lncrna,synt_cons_lncrna)
 cons_lncrna2<-setdiff(cons_lncrna,synt_cons_lncrna)
