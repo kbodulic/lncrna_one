@@ -2062,7 +2062,8 @@ repeats_plot_normalized_sum_bases_20_2<-ggplot(data=overlaps_repeat_together_num
   scale_fill_manual(values = wes_palette("Rushmore1", n = 3),name="Element",labels=c("Proximity","Exon","Intron")) +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
     scale_x_discrete(labels=c("Intronic lncRNAs","Intergenic lncRNAs","Overlapping lncRNAs","Protein-coding genes")) +
-    theme(axis.text.y = element_text(size=4)) 
+    theme(axis.text.y = element_text(size=4))  +
+  theme(axis.title.x = element_blank())
 
   
 
@@ -2073,7 +2074,7 @@ repeats_plot_normalized_sum_bases_20_2
 ggsave(repeats_plot_normalized_sum_bases_20_2,file="repeats_plot_normalized_sum_bases_20_2.png",width=7.6,height = 3.5)
 
 
-
+options(scipen=1000)
 figure_four<-ggdraw() +
   draw_plot(perc_within_trans, x = 0, y = 0.48, width = .2, height = .38) +
   draw_plot(perc_region_trans, x = .25, y = 0.48, width = .2, height = .38) +
@@ -2493,6 +2494,11 @@ read_counts_table_longer_prot_merged[,lncrna_class:=factor(lncrna_class,levels =
 
 options(scipen=1000)
 fpkm_prot_comp<-list(c("no_lncRNA","intronic"),c("no_lncRNA","intergenic_1kb"),c("no_lncRNA","overlapping"))
+
+
+pal <- wes_palette("Royal1", 4, type = "discrete")
+
+
 fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_class,y=FPKM,fill=lncrna_class)) +
   geom_boxplot(outlier.size = 0.5) +
   theme_bw() +
@@ -2500,11 +2506,31 @@ fpkm_prot_plot<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_cl
   theme(legend.title = element_text(size=6,face="bold")) +
   theme(axis.title.x=element_blank()) +
   theme(axis.text.x =element_blank()) +
-  scale_fill_manual(values=c(brewer.pal(n=3,"Set2")[1:3],"steelblue"),name = "Category",labels=c("Proteins containing\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
+  scale_fill_manual(values=pal,name = "Category",labels=c("Proteins containing\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
   theme(legend.text = element_text(size=5)) +
   stat_compare_means(comparisons = fpkm_prot_comp,label="p.signif",symnum.args = list(cutpoints = c(0, 1E-15, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns")),size=2.2) +
   theme(axis.title.y = element_text(size=5)) +
-  theme(axis.text = element_text(size=4))
+  theme(axis.text = element_text(size=4)) 
+
+
+fpkm_prot_plot_flip<-ggplot(data=read_counts_table_longer_prot_merged,aes(x=lncrna_class,y=FPKM,fill=lncrna_class)) +
+  geom_boxplot(outlier.size = 0.5,width=0.38) +
+  theme_bw() +
+  scale_y_log10() +
+  theme(legend.title = element_text(size=6,face="bold")) +
+  scale_fill_manual(values=pal,name = "Category",labels=c("Proteins containing\n an intronic lncRNA","Protein with an intergenic\nlncRNA closer than 1 kb","Proteins in\nan overlapping lncRNA","Other\nproteins")) +
+  theme(legend.text = element_text(size=5)) +
+  stat_compare_means(comparisons = fpkm_prot_comp,label="p.signif",symnum.args = list(cutpoints = c(0, 1E-15, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns")),size=2.2) +
+  coord_flip() +
+  theme(legend.position = "none") +
+  theme(axis.title.y = element_blank()) +
+  theme(axis.text.y = element_blank()) +
+      theme(axis.text.x= element_text(size=4)) +
+  theme(axis.title.x=element_text(size=6)) 
+
+fpkm_prot_plot_flip
+ggsave(fpkm_prot_plot_flip,file="fpkm_prot_plot_flip.png",width = 7,height = 4)
+
 
 fpkm_prot_plot
 ggsave(fpkm_prot_plot,file="fpkm_prot_plot.png",width = 7,height = 4)
@@ -2635,6 +2661,9 @@ colnames(go_all_esu)[1]<-"attribute"
 colnames(go_all_esu)[2]<-"go_names"
 go_all_esu_nonempty<-go_all_esu[go_names!="."]
 go_all_esu_nonempty<-go_all_esu_nonempty[attribute%in%protein_coding_annotation$attribute]
+go_all_esu_nonempty[,go_names:=str_replace_all(go_names,"guanyl-nucleotide exchange factor activity","GTP exchange activity")]
+go_all_esu_nonempty[,go_names:=str_replace_all(go_names,"obsolete oxidation-reduction process","oxidation-reduction process")]
+go_all_esu_nonempty[,go_names:=str_replace_all(go_names,"regulation of transcription, DNA-templated","regulation of transcription")]
 
 prot_overlaps_20kb_dt_GO<-merge(prot_overlaps_20kb_dt,go_all_esu_nonempty,by="attribute")
 
@@ -2642,6 +2671,10 @@ max_split<-max(str_count(prot_overlaps_20kb_dt_GO$go_names,"`"))+1
 prot_overlaps_20kb_dt_GO[,paste("GO_split",1:max_split,sep="_"):=tstrsplit(go_names, "`")]
 
 prot_overlaps_20kb_dt_GO_longer<-as.data.table(pivot_longer(prot_overlaps_20kb_dt_GO,cols = grep("GO_split",colnames(prot_overlaps_20kb_dt_GO),value = T),values_to = "GO_term"))
+
+
+
+
 prot_overlaps_20kb_dt_GO_longer[,GO_term:=str_remove_all(GO_term,"\\^")]
 prot_overlaps_20kb_dt_GO_longer<-prot_overlaps_20kb_dt_GO_longer[is.na(GO_term)==F]
 prot_overlaps_20kb_dt_GO_longer<-prot_overlaps_20kb_dt_GO_longer[grepl("cellular_component",GO_term)==F]
@@ -2654,10 +2687,12 @@ prot_overlaps_20kb_dt_GO_longer[,GO_term:=str_remove(GO_term,"GO:\\d+")]
 
 prot_overlaps_20kb_dt_GO_longer_f<-prot_overlaps_20kb_dt_GO_longer[GO_category=="F"]
 prot_overlaps_20kb_dt_GO_longer_f[,GO_term:=str_remove(GO_term,"molecular_function")]
+prot_overlaps_20kb_dt_GO_longer_f[GO_term=="guanyl-nucleotide exchange factor activity",GO_term:="GTP exchange activity"]
 prot_overlaps_20kb_dt_GO_longer_f_N<-prot_overlaps_20kb_dt_GO_longer_f[,.N,by=GO_term][order(-N)]
 
 prot_overlaps_20kb_dt_GO_longer_p<-prot_overlaps_20kb_dt_GO_longer[GO_category=="P"]
 prot_overlaps_20kb_dt_GO_longer_p[,GO_term:=str_remove(GO_term,"biological_process")]
+
 prot_overlaps_20kb_dt_GO_longer_p_N<-prot_overlaps_20kb_dt_GO_longer_p[,.N,by=GO_term][order(-N)]
 
 top_go_f<-prot_overlaps_20kb_dt_GO_longer_f_N[1:10]$GO_term
@@ -3125,7 +3160,6 @@ synt_cons_lncrna_table<-data.table(gene_id=c(synt_lncrna2,cons_lncrna2,synt_cons
 prot_overlaps_20kb_dt_GO_longer_f_merged<-merge(prot_overlaps_20kb_dt_GO_longer_f,synt_cons_lncrna_table)
 prot_overlaps_20kb_dt_GO_longer_p_merged<-merge(prot_overlaps_20kb_dt_GO_longer_p,synt_cons_lncrna_table)
 
-prot_overlaps_20kb_dt_GO_longer_f_merged[GO_term=="guanyl-nucleotide exchange factor activity",GO_term:="GTP exchange activity"]
 
 
 prot_overlaps_20kb_dt_GO_longer_f_merged_N<-prot_overlaps_20kb_dt_GO_longer_f_merged[,.N,by=c("GO_term","cons_cat")][order(-N)]
@@ -3320,9 +3354,9 @@ num_p_cons_class<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged_class_N,a
   ylab("Number of protein-coding genes") +
     coord_flip() +
   theme(axis.text= element_text(size=4)) +
-  theme(axis.title=element_text(size=6)) +
+  theme(axis.title=element_text(size=3.5)) +
   theme(axis.title.y = element_blank()) +
-  theme(strip.text = element_text(size=5))
+  theme(strip.text = element_text(size=5)) 
 
 
 num_p_cons_class
@@ -3340,6 +3374,7 @@ read_counts_table_longer_prot2<-copy(read_counts_table_longer_prot)
 colnames(read_counts_table_longer_prot2)[1]<-"attribute"
 prot_overlaps_20kb_dt_GO_longer_p_merged2_exp<-merge(prot_overlaps_20kb_dt_GO_longer_p_merged2,read_counts_table_longer_prot2,by="attribute")
 
+prot_overlaps_20kb_dt_GO_longer_p_merged2_exp[,GO_term:=factor(GO_term,levels=rev(top_go_p))]
 go_expression_plot<-ggplot(data=prot_overlaps_20kb_dt_GO_longer_p_merged2_exp,aes(x=GO_term,y=FPKM,fill=GO_term)) +
   geom_boxplot(outlier.size = 0.5) +
   theme_bw() +
@@ -3360,16 +3395,20 @@ ggsave(go_expression_plot,filename = "go_expression_plot.jpg",height = 4,width =
 
 
 figure_seven<-ggdraw() +
-  draw_plot(num_f_cons, x = 0.01, y = 0.48, width = .2, height = .4) +
-  draw_plot(num_p_cons, x = .2, y = 0.48, width = .26, height = .4) +
-  draw_plot(go_expression_plot, x = 0, y = 0.05, width = 0.42, height = 0.4) +
-  draw_plot(num_p_cons_class, x = 0.48, y = 0.15, width = 0.5, height = 0.6) +
-  draw_plot_label(label = c("A", "B", "D","C"), size =7,
-                  x = c(0.01, 0.24, 0.05,0.5), y = c(0.89, 0.89, 0.47,0.76))
-
+  draw_plot(num_f_cons, x = 0.01, y = 0.48, width = .24, height = .45) +
+  draw_plot(num_p_cons, x = .25, y = 0.48, width = .26, height = .45) +
+  draw_plot(fpkm_prot_plot_flip, x = 0.1, y = 0.05, width = 0.35, height = 0.4) +
+  draw_plot(num_p_cons_class, x = 0.52, y = 0.48, width = 0.47, height = 0.45) +
+  draw_plot(go_expression_plot,x=0.5,y=0.05,width=0.42,height = 0.4) +
+  draw_plot_label(label = c("A", "B", "D","C","E"), size =7,
+                  x = c(0.01, 0.24, 0.05,0.5,0.05), y = c(0.89, 0.89, 0.47,0.76,0.47))
 
 figure_seven
 
 ggsave(figure_seven,filename = "figure_seven.tiff",height = 12,width = 16.99,dpi=320,units = "cm")
+```
+
+```{r}
+
 ```
 
